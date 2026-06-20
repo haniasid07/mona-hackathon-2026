@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 9 — Competitive Gap Analysis Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .analyze-btn { width: 100%; padding: 14px; background: #1a1a18; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .analyze-btn:hover { background: #333; }
+  .analyze-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .focus-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .focus-btn { border: 1px solid #e5e5e3; border-radius: 8px; padding: 10px 8px; cursor: pointer; background: white; text-align: center; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .focus-btn:hover { border-color: #aaa; background: #fafaf8; }
+  .focus-btn.active { border-color: #378ADD; background: #EBF4FC; color: #185FA5; border-width: 2px; }
+  .gap-card { background: white; border: 1px solid #e5e5e3; border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
+  .gap-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .gap-title { font-size: 15px; font-weight: 500; }
+  .gap-sub { font-size: 13px; color: #555; margin-top: 2px; }
+  .priority-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+  .priority-high { background: #FCEBEB; color: #A32D2D; }
+  .priority-med { background: #FAEEDA; color: #854F0B; }
+  .priority-low { background: #EAF3DE; color: #3B6D11; }
+  .competitor-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .comp-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #f5f5f3; color: #555; border: 1px solid #e5e5e3; }
+  .insight-row { font-size: 13px; color: #555; padding: 4px 0; border-bottom: 1px solid #f5f5f3; display: flex; gap: 8px; }
+  .insight-row:last-child { border-bottom: none; }
+  .score-bar { height: 6px; border-radius: 3px; background: #eee; margin-top: 4px; }
+  .score-fill { height: 100%; border-radius: 3px; background: #378ADD; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+  .metric { background: #f5f5f3; border-radius: 6px; padding: 8px 10px; }
+  .metric-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-val { font-size: 16px; font-weight: 500; margin-top: 2px; }
+  .grid-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 0.5rem; overflow-x: auto; display: block; }
+  .grid-table th { padding: 8px 10px; background: #f5f5f3; color: #888; font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; white-space: nowrap; }
+  .grid-table td { padding: 7px 10px; border-bottom: 1px solid #f5f5f3; vertical-align: middle; }
+  .cell-alk { background: #EAF3DE; color: #3B6D11; font-weight: 500; text-align: center; font-size: 11px; }
+  .cell-comp { background: #FAEEDA; color: #854F0B; text-align: center; font-size: 11px; }
+  .cell-gap { background: #FCEBEB; color: #A32D2D; text-align: center; font-size: 11px; font-weight: 600; }
+  .cell-none { color: #ccc; text-align: center; font-size: 11px; }
+  .legend { display: flex; gap: 12px; font-size: 11px; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">🔍</span>
+    <div>
+      <h1>Competitive gap analysis agent</h1>
+      <div class="subtitle">Dr. Theiss Naturwaren GmbH / Allgäuer Latschenkiefer — Problem 9</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Analysis focus</div>
+    <div class="focus-grid">
+      <button class="focus-btn active" id="focus-all" onclick="setFocus('all', this)">All categories</button>
+      <button class="focus-btn" id="focus-feet" onclick="setFocus('feet', this)">🦶 Foot care</button>
+      <button class="focus-btn" id="focus-legs" onclick="setFocus('legs', this)">🦵 Leg care</button>
+      <button class="focus-btn" id="focus-muscles" onclick="setFocus('muscles', this)">💪 Muscles & joints</button>
+    </div>
+    <div class="section-label">What to surface</div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-whitespace" checked> White-space gaps</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-positioning" checked> Positioning weaknesses</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-format" checked> Format gaps</label>
+    </div>
+    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Run competitive gap analysis ↗</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+let currentFocus = 'all';
+
+const BRAND_DATA = {
+  name: 'Allgäuer Latschenkiefer (Dr. Theiss Naturwaren GmbH)',
+  products: [
+    { sku:'ALK-FB-01', name:'Fuß Butter', line:'Feet', format:'balm', need:'dry skin', price:7.71, segment:'Women 45+' },
+    { sku:'ALK-FB-02', name:'Sole Fußbad', line:'Feet', format:'bath', need:'wellness', price:6.49, segment:'Wellness 50+' },
+    { sku:'ALK-FB-03', name:'Hornhaut Reduziercreme', line:'Feet', format:'cream', need:'callus', price:6.99, segment:'Women 30-60' },
+    { sku:'ALK-FB-04', name:'Hornhaut Entferner Maske', line:'Feet', format:'mask/device', need:'callus', price:8.49, segment:'Women 25-45' },
+    { sku:'ALK-FB-05', name:'10% Urea Fußcreme', line:'Feet', format:'cream', need:'dry skin', price:7.25, segment:'Diabetic/very dry' },
+    { sku:'ALK-FB-06', name:'Fußpflege Deospray', line:'Feet', format:'spray', need:'odour/sweat', price:6.10, segment:'Active men 20-45' },
+    { sku:'ALK-LG-01', name:'5 in 1 Beinlotion', line:'Legs', format:'lotion', need:'heavy legs', price:9.95, segment:'Women 35-65' },
+    { sku:'ALK-LG-02', name:'Bein Frische Gel', line:'Legs', format:'gel', need:'heavy legs', price:8.20, segment:'Travel/standing jobs' },
+    { sku:'ALK-LG-03', name:'Besenreiser Pflegebalsam', line:'Legs', format:'balm', need:'spider veins', price:11.49, segment:'Women 40-65' },
+    { sku:'ALK-MG-01', name:'Mobil Gel', line:'Muscles', format:'gel', need:'muscle pain', price:5.83, segment:'Active 30+' },
+    { sku:'ALK-MG-02', name:'Mobil Einreibung Extra Stark', line:'Muscles', format:'rub', need:'muscle pain', price:8.90, segment:'Sport 25-55' },
+    { sku:'ALK-MG-03', name:'Mobil Eisspray akut', line:'Muscles', format:'spray', need:'recovery', price:9.40, segment:'Athletes' },
+    { sku:'ALK-MG-04', name:'Franzbranntwein', line:'Muscles', format:'fluid', need:'muscle pain', price:6.75, segment:'Traditional 55+' },
+    { sku:'ALK-MG-05', name:'Wärmendes Intensiv Gel', line:'Muscles', format:'gel', need:'joint pain', price:8.30, segment:'45+ tension/back' },
+  ],
+  competitors: [
+    { name:'Gehwol', owner:'Eduard Gerlach', overlap:'Feet (premium)', angle:'Professional/podiatry foot care' },
+    { name:'Scholl', owner:'Reckitt', overlap:'Feet', angle:'Mass-market foot care, devices' },
+    { name:'Allpresan', owner:'Neubourg Skin Care', overlap:'Feet (urea foam)', angle:'Foam-format dry/diabetic feet' },
+    { name:'Kneipp', owner:'Kneipp', overlap:'Feet, legs, bath', angle:'Natural wellness, herbal baths' },
+    { name:'tetesept', owner:'Merz', overlap:'Feet, bath', angle:'Drugstore wellness / bath' },
+    { name:'Hansaplast Foot Expert', owner:'Beiersdorf', overlap:'Feet', angle:'Mass-market, devices & creams' },
+    { name:'Doppelherz', owner:'Queisser Pharma', overlap:'Legs (vein), joints', angle:'Supplements + topicals' },
+    { name:'Voltaren/proff', owner:'GSK/Dr.Theiss', overlap:'Muscles & joints', angle:'OTC pain (diclofenac)' },
+    { name:'Pernaton', owner:'Gattlen Tritec', overlap:'Joints', angle:'Green-lipped mussel positioning' },
+    { name:'Pferdesalbe brands', owner:'Various', overlap:'Muscles', angle:'Traditional herbal rubs' },
+  ]
+};
+
+function setFocus(f, btn) {
+  currentFocus = f;
+  document.querySelectorAll('.focus-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Analysing competitive landscape...';
+  document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:2rem;text-align:center;color:#888;font-size:14px;"><span class="spinner" style="border-top-color:#888;"></span>Mapping product × need × format grid and surfacing white-space gaps...</div>';
+
+  const focusText = currentFocus === 'all' ? 'all categories (Feet, Legs, Muscles & Joints)' : currentFocus;
+  const checks = [];
+  if (document.getElementById('chk-whitespace').checked) checks.push('white-space gaps (cells where competitors exist but Allgäuer is absent)');
+  if (document.getElementById('chk-positioning').checked) checks.push('positioning weaknesses vs competitors');
+  if (document.getElementById('chk-format').checked) checks.push('format gaps (e.g. foam, device, subscription formats)');
+
+  const prompt = `You are a competitive intelligence analyst specialising in German OTC pharmacy and personal care markets.
+
+Analyse the following brand and competitor data for Allgäuer Latschenkiefer, focusing on: ${focusText}.
+
+Surface: ${checks.join(', ')}.
+
+BRAND PRODUCTS (Allgäuer Latschenkiefer):
+${JSON.stringify(BRAND_DATA.products, null, 2)}
+
+COMPETITOR LANDSCAPE:
+${JSON.stringify(BRAND_DATA.competitors, null, 2)}
+
+WHITE-SPACE HYPOTHESES TO VALIDATE:
+- Men-targeted recovery line
+- Cooling sports-team sprays vs Scholl/Hansaplast
+- Subscription/refill for repeat foot-care SKUs
+- Sustainability-forward packaging messaging
+- Diabetic-foot specialist sub-brand
+- App/QR usage guidance
+
+Return ONLY valid JSON:
+{
+  "executive_summary": string (3 sentences, key findings),
+  "total_gaps_found": number,
+  "coverage_score": number (0-100, how well brand covers the need×format grid vs competitors),
+  "gaps": [
+    {
+      "id": string,
+      "title": string,
+      "category": "Feet"|"Legs"|"Muscles"|"Cross-category",
+      "need": string,
+      "missing_format": string,
+      "competitors_present": [string],
+      "priority": "high"|"medium"|"low",
+      "priority_score": number (0-100),
+      "market_size_estimate": string,
+      "brand_fit_score": number (0-100),
+      "rationale": string (2 sentences),
+      "suggested_product": string,
+      "suggested_price_range": string,
+      "risk": string (one sentence)
+    }
+  ],
+  "positioning_weaknesses": [
+    { "weakness": string, "competitor_doing_it_better": string, "recommendation": string }
+  ],
+  "quick_wins": [string],
+  "need_format_grid": {
+    "rows": [string],
+    "cols": [string],
+    "cells": { "need|format": "ALK"|"COMP"|"GAP"|"NONE" }
+  }
+}
+
+Be specific, commercial, and actionable. Rank gaps by priority_score descending.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: 'You are a competitive intelligence expert. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r);
+  } catch(e) {
+    document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:1.5rem;color:#A32D2D;">Analysis failed. Please try again.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Run competitive gap analysis ↗';
+  }
+}
+
+function renderResult(r) {
+  const covColor = r.coverage_score >= 70 ? '#1D9E75' : r.coverage_score >= 50 ? '#BA7517' : '#A32D2D';
+
+  // Gap cards
+  const gapCards = (r.gaps || []).map((g, i) => {
+    const priCls = g.priority === 'high' ? 'priority-high' : g.priority === 'medium' ? 'priority-med' : 'priority-low';
+    const compTags = (g.competitors_present || []).map(c => `<span class="comp-tag">${c}</span>`).join('');
+    return `<div class="gap-card">
+      <div class="gap-header">
+        <div>
+          <div class="gap-title">${i+1}. ${g.title}</div>
+          <div class="gap-sub">${g.category} · Missing: <strong>${g.missing_format}</strong> for <em>${g.need}</em></div>
+        </div>
+        <span class="priority-badge ${priCls}">${g.priority} priority</span>
+      </div>
+      <div class="competitor-tags">${compTags}</div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Priority score</div><div class="metric-val">${g.priority_score}/100</div><div class="score-bar"><div class="score-fill" style="width:${g.priority_score}%;"></div></div></div>
+        <div class="metric"><div class="metric-label">Brand fit</div><div class="metric-val">${g.brand_fit_score}/100</div><div class="score-bar"><div class="score-fill" style="width:${g.brand_fit_score}%;background:#1D9E75;"></div></div></div>
+        <div class="metric"><div class="metric-label">Market size</div><div class="metric-val" style="font-size:12px;margin-top:4px;">${g.market_size_estimate}</div></div>
+      </div>
+      <div class="insight-row"><span style="color:#378ADD;flex-shrink:0;">💡</span><span>${g.rationale}</span></div>
+      <div class="insight-row"><span style="color:#1D9E75;flex-shrink:0;">→</span><span><strong>Suggested product:</strong> ${g.suggested_product} · ${g.suggested_price_range}</span></div>
+      <div class="insight-row"><span style="color:#BA7517;flex-shrink:0;">⚠</span><span><strong>Risk:</strong> ${g.risk}</span></div>
+    </div>`;
+  }).join('');
+
+  // Positioning weaknesses
+  const weaknesses = (r.positioning_weaknesses || []).map(w =>
+    `<div class="insight-row"><span style="color:#A32D2D;flex-shrink:0;">✗</span><div><strong>${w.weakness}</strong> — better done by ${w.competitor_doing_it_better}. <em>${w.recommendation}</em></div></div>`
+  ).join('');
+
+  // Quick wins
+  const quickWins = (r.quick_wins || []).map(q =>
+    `<div class="insight-row"><span style="color:#1D9E75;flex-shrink:0;">✓</span><span>${q}</span></div>`
+  ).join('');
+
+  // Need × format grid
+  let gridHtml = '';
+  if (r.need_format_grid) {
+    const { rows, cols, cells } = r.need_format_grid;
+    const headerCols = cols.map(c => `<th>${c}</th>`).join('');
+    const bodyRows = rows.map(row => {
+      const tds = cols.map(col => {
+        const key = `${row}|${col}`;
+        const val = cells[key] || 'NONE';
+        if (val === 'ALK') return `<td class="cell-alk">✓ ALK</td>`;
+        if (val === 'COMP') return `<td class="cell-comp">Comp.</td>`;
+        if (val === 'GAP') return `<td class="cell-gap">GAP</td>`;
+        return `<td class="cell-none">—</td>`;
+      }).join('');
+      return `<tr><td style="font-weight:500;font-size:12px;white-space:nowrap;">${row}</td>${tds}</tr>`;
+    }).join('');
+    gridHtml = `
+      <div class="card" style="margin-top:1rem;">
+        <div class="section-label">Need × format coverage grid</div>
+        <div style="overflow-x:auto;">
+          <table class="grid-table">
+            <thead><tr><th>Need / Format</th>${headerCols}</tr></thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>
+        <div class="legend" style="margin-top:8px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#EAF3DE;border:1px solid #c0dda0;"></div> ALK present</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#FAEEDA;border:1px solid #f0d090;"></div> Competitor only</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#FCEBEB;border:1px solid #f0b0b0;"></div> Gap opportunity</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#eee;border:1px solid #ddd;"></div> No presence</div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:16px;font-weight:500;">Gap analysis — Allgäuer Latschenkiefer</div>
+          <div style="font-size:13px;color:#888;margin-top:2px;">${r.total_gaps_found || 0} gaps identified across ${currentFocus === 'all' ? 'all categories' : currentFocus}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;">Coverage score</div>
+          <div style="font-size:28px;font-weight:500;color:${covColor};">${r.coverage_score}%</div>
+        </div>
+      </div>
+      <div style="background:#f5f5f3;border-radius:8px;padding:12px;font-size:14px;line-height:1.7;color:#555;">${r.executive_summary || ''}</div>
+    </div>
+
+    ${gridHtml}
+
+    <div class="card" style="margin-top:1rem;">
+      <div class="section-label">White-space gaps — ranked by priority</div>
+      ${gapCards}
+    </div>
+
+    ${weaknesses ? `<div class="card"><div class="section-label">Positioning weaknesses</div>${weaknesses}</div>` : ''}
+    ${quickWins ? `<div class="card"><div class="section-label">⚡ Quick wins (low investment, fast to market)</div>${quickWins}</div>` : ''}`;
+}
+</script>
+</body>
+</html>
