@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 7 — Customer Analytics Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 880px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .run-btn { width: 100%; padding: 14px; background: #1a1a18; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .run-btn:hover { background: #333; }
+  .run-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e5e3; padding-bottom: 0; margin-bottom: 1rem; }
+  .tab { padding: 8px 14px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; color: #888; }
+  .tab.active { color: #1a1a18; border-bottom-color: #1a1a18; font-weight: 500; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .segment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .seg-card { border: 1.5px solid #e5e5e3; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s; }
+  .seg-card:hover { border-color: #aaa; }
+  .seg-card.active { border-color: #378ADD; background: #EBF4FC; border-width: 2px; }
+  .seg-icon { font-size: 24px; margin-bottom: 6px; }
+  .seg-name { font-size: 13px; font-weight: 500; }
+  .seg-meta { font-size: 11px; color: #888; margin-top: 2px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .metric { background: #f5f5f3; border-radius: 8px; padding: 12px; }
+  .metric-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-val { font-size: 22px; font-weight: 500; margin-top: 4px; }
+  .metric-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .signal-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f5f5f3; font-size: 13px; }
+  .signal-row:last-child { border-bottom: none; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+  .badge-high { background: #EAF3DE; color: #3B6D11; }
+  .badge-med { background: #FAEEDA; color: #854F0B; }
+  .badge-low { background: #f5f5f3; color: #888; }
+  .sku-tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin: 2px; background: #E6F1FB; color: #185FA5; }
+  .bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .bar-label { min-width: 120px; color: #555; }
+  .bar-outer { flex: 1; height: 8px; background: #eee; border-radius: 4px; }
+  .bar-inner { height: 100%; border-radius: 4px; }
+  .bar-val { min-width: 40px; text-align: right; font-size: 12px; color: #888; }
+  .campaign-card { border: 1px solid #e5e5e3; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  .campaign-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .campaign-title { font-size: 14px; font-weight: 500; }
+  .campaign-meta { font-size: 12px; color: #888; margin-top: 2px; }
+  .lift-box { text-align: right; }
+  .lift-val { font-size: 18px; font-weight: 500; color: #1D9E75; }
+  .lift-label { font-size: 11px; color: #888; }
+  select { width: 100%; border: 1px solid #e5e5e3; border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 13px; background: white; color: #1a1a18; }
+  textarea { width: 100%; border: 1px solid #e5e5e3; border-radius: 8px; padding: 10px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 80px; background: #fafaf8; }
+  textarea:focus, select:focus { outline: none; border-color: #378ADD; }
+  .upload-zone { border: 1.5px dashed #ccc; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; background: white; font-size: 13px; color: #888; transition: background 0.15s; }
+  .upload-zone:hover { background: #f5f5f3; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">📈</span>
+    <div>
+      <h1>Customer analytics agent</h1>
+      <div class="subtitle">Dr. Theiss / Allgäuer Latschenkiefer — Problem 7 — Targeting signals & behavioural patterns</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('segments', this)">Segment analysis</div>
+      <div class="tab" onclick="switchTab('targeting', this)">Targeting signals</div>
+      <div class="tab" onclick="switchTab('campaigns', this)">Campaign lift measurement</div>
+      <div class="tab" onclick="switchTab('custom', this)">Custom query</div>
+    </div>
+
+    <div class="tab-content active" id="tab-segments">
+      <div class="section-label">Select a customer segment to analyse</div>
+      <div class="segment-grid" id="segmentGrid"></div>
+      <button class="run-btn" id="segBtn" onclick="runSegmentAnalysis()" disabled>Analyse segment ↗</button>
+    </div>
+
+    <div class="tab-content" id="tab-targeting">
+      <div class="section-label">Product to target</div>
+      <select id="tgt-product" style="margin-bottom:10px;">
+        <option value="">Select a product...</option>
+        <option value="Hornhaut Reduziercreme (ALK-FB-03) — callus cream for sandal season">Hornhaut Reduziercreme — callus cream (Spring)</option>
+        <option value="Sole Fußbad (ALK-FB-02) — brine foot bath, winter wellness">Sole Fußbad — foot bath (Winter)</option>
+        <option value="Mobil Eisspray akut (ALK-MG-03) — cold spray for athletes">Mobil Eisspray akut — cold spray (Sport)</option>
+        <option value="5 in 1 Beinlotion (ALK-LG-01) — multi-benefit leg lotion">5 in 1 Beinlotion — leg lotion (Summer)</option>
+        <option value="10% Urea Fußcreme (ALK-FB-05) — urea foot cream for diabetic/dry skin">10% Urea Fußcreme — diabetic/dry feet (All year)</option>
+        <option value="Fuß Butter (ALK-FB-01) — rich foot butter for very dry skin">Fuß Butter — rich foot butter (Autumn–Winter)</option>
+      </select>
+      <div class="section-label">Target window</div>
+      <select id="tgt-window" style="margin-bottom:10px;">
+        <option value="next 2 weeks">Next 2 weeks</option>
+        <option value="next month">Next month</option>
+        <option value="this season">This season</option>
+        <option value="upcoming holiday/event">Upcoming holiday/event</option>
+      </select>
+      <button class="run-btn" onclick="runTargeting()">Generate targeting signal ↗</button>
+    </div>
+
+    <div class="tab-content" id="tab-campaigns">
+      <div class="section-label">Simulate a campaign lift measurement</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="section-label">Product</div>
+          <select id="camp-product">
+            <option value="Mobil Eisspray akut">Mobil Eisspray akut</option>
+            <option value="Hornhaut Reduziercreme">Hornhaut Reduziercreme</option>
+            <option value="5 in 1 Beinlotion">5 in 1 Beinlotion</option>
+            <option value="Sole Fußbad">Sole Fußbad</option>
+          </select>
+        </div>
+        <div>
+          <div class="section-label">Campaign channel</div>
+          <select id="camp-channel">
+            <option value="Instagram Reels">Instagram Reels</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Email newsletter">Email newsletter</option>
+            <option value="Pharmacy display">Pharmacy display</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="section-label">Treatment group sales (units)</div>
+          <input type="number" id="camp-treatment" value="1240" style="width:100%;border:1px solid #e5e5e3;border-radius:6px;padding:7px 10px;font-size:13px;">
+        </div>
+        <div>
+          <div class="section-label">Control group sales (units)</div>
+          <input type="number" id="camp-control" value="980" style="width:100%;border:1px solid #e5e5e3;border-radius:6px;padding:7px 10px;font-size:13px;">
+        </div>
+      </div>
+      <button class="run-btn" onclick="runCampaignLift()">Measure sales lift ↗</button>
+    </div>
+
+    <div class="tab-content" id="tab-custom">
+      <div class="section-label">Ask anything about customers or targeting</div>
+      <textarea id="custom-query" placeholder="E.g. Which customer segments should we target with Mobil Eisspray before the Bundesliga season? What time of day should we send push notifications to heavy-legs sufferers?"></textarea>
+      <button class="run-btn" style="margin-top:8px;" onclick="runCustomQuery()">Ask agent ↗</button>
+    </div>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { id:'feet-women-45', icon:'👩', name:'Foot care — Women 45+', skus:['ALK-FB-01','ALK-FB-05'], rfm:'High frequency, high value', channels:'Email, Instagram', peak:'Autumn–Winter', size:'~2.1M DE households' },
+  { id:'callus-women-35', icon:'👠', name:'Sandal prep — Women 30–60', skus:['ALK-FB-03','ALK-FB-04'], rfm:'Seasonal spike, Mar–Jun', channels:'Instagram Reels, Pinterest', peak:'Spring', size:'~3.4M DE women' },
+  { id:'diabetic', icon:'🏥', name:'Diabetic / very dry skin', skus:['ALK-FB-05'], rfm:'Year-round, loyal', channels:'Pharmacy, email', peak:'All year', size:'~8M diabetics DE' },
+  { id:'active-men', icon:'🏃', name:'Active men 20–45', skus:['ALK-FB-06','ALK-MG-03'], rfm:'Sport-season spike', channels:'TikTok, sport apps', peak:'Summer + sport season', size:'~4.5M active men DE' },
+  { id:'heavy-legs', icon:'🦵', name:'Heavy legs — Standing jobs', skus:['ALK-LG-01','ALK-LG-02'], rfm:'Summer peak, commuters', channels:'LinkedIn, email, pharmacy', peak:'Summer', size:'~5.1M DE (nurses, retail)' },
+  { id:'athletes', icon:'⚽', name:'Athletes & sport teams', skus:['ALK-MG-02','ALK-MG-03'], rfm:'Matchday spike', channels:'Sport clubs, team orders', peak:'Sport season', size:'~7M active sport club members' },
+  { id:'wellness-50', icon:'🛁', name:'Wellness — 50+', skus:['ALK-FB-02','ALK-FB-01'], rfm:'Winter peak, gifting', channels:'Facebook, pharmacy', peak:'Winter', size:'~6.2M DE 50–70' },
+  { id:'joint-pain-45', icon:'🦴', name:'Joint & back pain — 45+', skus:['ALK-MG-01','ALK-MG-05'], rfm:'Autumn–Winter, cold weather', channels:'TV, pharmacy, email', peak:'Autumn–Winter', size:'~9M DE chronic pain' },
+];
+
+let selectedSegIdx = null;
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('resultArea').innerHTML = '';
+}
+
+function buildSegments() {
+  const grid = document.getElementById('segmentGrid');
+  SEGMENTS.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'seg-card';
+    card.id = 'sg-' + i;
+    const skuTags = s.skus.map(sk => `<span class="sku-tag">${sk}</span>`).join('');
+    card.innerHTML = `<div class="seg-icon">${s.icon}</div><div class="seg-name">${s.name}</div><div class="seg-meta">${s.size}</div><div style="margin-top:6px;">${skuTags}</div>`;
+    card.onclick = () => {
+      document.querySelectorAll('.seg-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedSegIdx = i;
+      document.getElementById('segBtn').disabled = false;
+    };
+    grid.appendChild(card);
+  });
+}
+
+async function runSegmentAnalysis() {
+  if (selectedSegIdx === null) return;
+  const seg = SEGMENTS[selectedSegIdx];
+  showLoading('Analysing segment behaviour patterns...');
+
+  const prompt = `You are a customer analytics agent for Allgäuer Latschenkiefer (Dr. Theiss Naturwaren GmbH), a German pharmacy OTC brand.
+
+Analyse this customer segment and generate actionable targeting intelligence.
+
+SEGMENT: ${seg.name}
+- Key SKUs: ${seg.skus.join(', ')}
+- RFM pattern: ${seg.rfm}
+- Channels: ${seg.channels}
+- Peak season: ${seg.peak}
+- Estimated size: ${seg.size}
+
+Return ONLY valid JSON:
+{
+  "segment_summary": string (2 sentences),
+  "rfm_profile": { "recency": string, "frequency": string, "monetary": string },
+  "behavioural_patterns": [{ "pattern": string, "strength": "high"|"medium"|"low", "insight": string }],
+  "optimal_send_windows": [{ "day": string, "time": string, "reason": string }],
+  "top_skus": [{ "sku": string, "name": string, "affinity_score": number, "reason": string }],
+  "channel_recommendations": [{ "channel": string, "priority": "primary"|"secondary", "format": string, "why": string }],
+  "targeting_signals": [{ "signal": string, "type": "demographic"|"behavioural"|"contextual"|"seasonal", "strength": number }],
+  "cross_sell_opportunities": [string],
+  "estimated_campaign_ctr": string,
+  "segment_size_de": string,
+  "key_message": string
+}`;
+
+  try {
+    const r = await callClaude(prompt);
+    renderSegmentResult(r, seg);
+  } catch { showError(); }
+}
+
+async function runTargeting() {
+  const product = document.getElementById('tgt-product').value;
+  const window = document.getElementById('tgt-window').value;
+  if (!product) { alert('Please select a product.'); return; }
+  showLoading('Generating targeting signal...');
+
+  const prompt = `You are a customer analytics agent for Allgäuer Latschenkiefer. Generate a targeting signal plan.
+
+PRODUCT: ${product}
+TARGET WINDOW: ${window}
+Today: Saturday 20 June 2026
+
+Return ONLY valid JSON:
+{
+  "product_name": string,
+  "target_segments": [{ "segment": string, "priority": number, "size": string, "rationale": string }],
+  "optimal_timing": { "best_days": [string], "best_hours": string, "reasoning": string },
+  "channel_plan": [{ "channel": string, "message_angle": string, "format": string, "budget_share_pct": number }],
+  "creative_hooks": [string],
+  "expected_reach": string,
+  "expected_conversion": string,
+  "measurement_kpis": [string],
+  "post_campaign_lift_method": string
+}`;
+
+  try {
+    const r = await callClaude(prompt);
+    renderTargetingResult(r);
+  } catch { showError(); }
+}
+
+async function runCampaignLift() {
+  const product = document.getElementById('camp-product').value;
+  const channel = document.getElementById('camp-channel').value;
+  const treatment = parseInt(document.getElementById('camp-treatment').value);
+  const control = parseInt(document.getElementById('camp-control').value);
+  showLoading('Calculating sales lift...');
+
+  const liftPct = (((treatment - control) / control) * 100).toFixed(1);
+  const prompt = `You are a campaign analytics expert. Interpret this A/B test result for a German pharmacy OTC brand.
+
+CAMPAIGN: ${product} promoted via ${channel}
+TREATMENT GROUP SALES: ${treatment} units
+CONTROL GROUP SALES: ${control} units
+RAW LIFT: ${liftPct}%
+
+Return ONLY valid JSON:
+{
+  "lift_percent": number,
+  "lift_significance": "statistically significant"|"borderline"|"not significant",
+  "interpretation": string (2 sentences),
+  "revenue_impact_estimate": string,
+  "confidence_level": string,
+  "recommendations": [string],
+  "next_test_suggestion": string,
+  "attribution_notes": string
+}`;
+
+  try {
+    const r = await callClaude(prompt);
+    renderCampaignResult(r, product, channel, treatment, control, liftPct);
+  } catch { showError(); }
+}
+
+async function runCustomQuery() {
+  const q = document.getElementById('custom-query').value.trim();
+  if (!q) { alert('Please enter a question.'); return; }
+  showLoading('Thinking...');
+
+  const prompt = `You are a customer analytics and targeting expert for Allgäuer Latschenkiefer (Dr. Theiss Naturwaren GmbH), a German pharmacy OTC brand specialising in foot care, leg care, and muscle/joint products.
+
+The brand sells primarily through German pharmacies. Key segments include women 30-65 (foot/leg care), active men 20-45 (sport/recovery), diabetic patients (urea foot care), wellness consumers 50+ (foot baths), and athletes/sport teams.
+
+Answer this question concisely and practically: ${q}
+
+Return ONLY valid JSON:
+{
+  "answer": string (clear, practical answer in 2-4 sentences),
+  "key_recommendations": [string],
+  "relevant_segments": [string],
+  "relevant_skus": [string],
+  "caveats": string or null
+}`;
+
+  try {
+    const r = await callClaude(prompt);
+    renderCustomResult(r, q);
+  } catch { showError(); }
+}
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6', max_tokens: 2000,
+      system: 'You are a customer analytics expert. Return ONLY valid JSON, no markdown.',
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  const txt = data.content.map(i => i.text || '').join('');
+  return JSON.parse(txt.replace(/```json|```/g, '').trim());
+}
+
+function showLoading(msg) {
+  document.getElementById('resultArea').innerHTML = `<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:2rem;text-align:center;color:#888;font-size:14px;"><span class="spinner" style="border-top-color:#888;"></span>${msg}</div>`;
+}
+function showError() {
+  document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:1.5rem;color:#A32D2D;font-size:14px;">Analysis failed. Please try again.</div>';
+}
+
+function renderSegmentResult(r, seg) {
+  const patterns = (r.behavioural_patterns || []).map(p => {
+    const cls = p.strength === 'high' ? 'badge-high' : p.strength === 'medium' ? 'badge-med' : 'badge-low';
+    return `<div class="signal-row"><span class="badge ${cls}" style="flex-shrink:0;">${p.strength}</span><div><strong>${p.pattern}</strong> — ${p.insight}</div></div>`;
+  }).join('');
+
+  const windows = (r.optimal_send_windows || []).map(w =>
+    `<div class="signal-row"><span style="flex-shrink:0;font-size:16px;">🕐</span><div><strong>${w.day} ${w.time}</strong> — ${w.reason}</div></div>`
+  ).join('');
+
+  const channels = (r.channel_recommendations || []).map(c =>
+    `<div class="signal-row"><span class="badge ${c.priority === 'primary' ? 'badge-high' : 'badge-med'}" style="flex-shrink:0;">${c.priority}</span><div><strong>${c.channel}</strong> · ${c.format} — ${c.why}</div></div>`
+  ).join('');
+
+  const signals = (r.targeting_signals || []).map(s => `
+    <div class="bar-row">
+      <span class="bar-label">${s.signal}</span>
+      <div class="bar-outer"><div class="bar-inner" style="width:${s.strength}%;background:${s.strength >= 70 ? '#1D9E75' : s.strength >= 40 ? '#BA7517' : '#888'};"></div></div>
+      <span class="bar-val">${s.strength}%</span>
+    </div>`).join('');
+
+  const crossSell = (r.cross_sell_opportunities || []).map(c =>
+    `<div class="signal-row"><span style="color:#378ADD;flex-shrink:0;">→</span><span>${c}</span></div>`
+  ).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:16px;font-weight:500;">${seg.icon} ${seg.name}</div>
+          <div style="font-size:13px;color:#888;margin-top:2px;">${r.segment_size_de || seg.size}</div>
+        </div>
+        <div style="background:#EAF3DE;border-radius:8px;padding:8px 12px;text-align:center;">
+          <div style="font-size:11px;color:#888;">Est. CTR</div>
+          <div style="font-size:18px;font-weight:500;color:#1D9E75;">${r.estimated_campaign_ctr || '—'}</div>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#555;line-height:1.7;margin-bottom:1rem;">${r.segment_summary || ''}</p>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Recency</div><div class="metric-val" style="font-size:14px;margin-top:6px;">${r.rfm_profile?.recency || '—'}</div></div>
+        <div class="metric"><div class="metric-label">Frequency</div><div class="metric-val" style="font-size:14px;margin-top:6px;">${r.rfm_profile?.frequency || '—'}</div></div>
+        <div class="metric"><div class="metric-label">Monetary</div><div class="metric-val" style="font-size:14px;margin-top:6px;">${r.rfm_profile?.monetary || '—'}</div></div>
+        <div class="metric"><div class="metric-label">Key message</div><div class="metric-val" style="font-size:12px;margin-top:6px;">${r.key_message || '—'}</div></div>
+      </div>
+      ${patterns ? `<div class="section-label" style="margin-top:1rem;">Behavioural patterns</div>${patterns}` : ''}
+      ${signals ? `<div class="section-label" style="margin-top:1rem;">Targeting signal strength</div>${signals}` : ''}
+      ${windows ? `<div class="section-label" style="margin-top:1rem;">Optimal send windows</div>${windows}` : ''}
+      ${channels ? `<div class="section-label" style="margin-top:1rem;">Channel recommendations</div>${channels}` : ''}
+      ${crossSell ? `<div class="section-label" style="margin-top:1rem;">Cross-sell opportunities</div>${crossSell}` : ''}
+    </div>`;
+}
+
+function renderTargetingResult(r) {
+  const segs = (r.target_segments || []).map((s, i) => `
+    <div class="signal-row">
+      <span class="badge ${i === 0 ? 'badge-high' : i === 1 ? 'badge-med' : 'badge-low'}" style="flex-shrink:0;">#${s.priority}</span>
+      <div><strong>${s.segment}</strong> (${s.size}) — ${s.rationale}</div>
+    </div>`).join('');
+
+  const channels = (r.channel_plan || []).map(c => `
+    <div class="campaign-card">
+      <div class="campaign-header">
+        <div><div class="campaign-title">${c.channel}</div><div class="campaign-meta">${c.format}</div></div>
+        <div class="lift-box"><div class="lift-val">${c.budget_share_pct}%</div><div class="lift-label">budget share</div></div>
+      </div>
+      <div style="font-size:13px;color:#555;">${c.message_angle}</div>
+    </div>`).join('');
+
+  const hooks = (r.creative_hooks || []).map(h =>
+    `<div class="signal-row"><span style="color:#378ADD;flex-shrink:0;">💡</span><span>${h}</span></div>`
+  ).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="font-size:16px;font-weight:500;margin-bottom:0.5rem;">${r.product_name}</div>
+      <div style="display:flex;gap:12px;margin-bottom:1rem;flex-wrap:wrap;">
+        <div style="background:#f5f5f3;border-radius:8px;padding:8px 12px;"><div style="font-size:11px;color:#888;">Expected reach</div><div style="font-size:15px;font-weight:500;">${r.expected_reach || '—'}</div></div>
+        <div style="background:#f5f5f3;border-radius:8px;padding:8px 12px;"><div style="font-size:11px;color:#888;">Expected conversion</div><div style="font-size:15px;font-weight:500;">${r.expected_conversion || '—'}</div></div>
+        <div style="background:#f5f5f3;border-radius:8px;padding:8px 12px;"><div style="font-size:11px;color:#888;">Best days</div><div style="font-size:15px;font-weight:500;">${(r.optimal_timing?.best_days || []).join(', ')}</div></div>
+        <div style="background:#f5f5f3;border-radius:8px;padding:8px 12px;"><div style="font-size:11px;color:#888;">Best time</div><div style="font-size:15px;font-weight:500;">${r.optimal_timing?.best_hours || '—'}</div></div>
+      </div>
+      ${segs ? `<div class="section-label">Target segments</div>${segs}` : ''}
+      ${channels ? `<div class="section-label" style="margin-top:1rem;">Channel plan</div>${channels}` : ''}
+      ${hooks ? `<div class="section-label" style="margin-top:1rem;">Creative hooks</div>${hooks}` : ''}
+      ${r.post_campaign_lift_method ? `<div style="background:#E6F1FB;border-radius:8px;padding:10px;margin-top:1rem;font-size:13px;"><strong>📊 How to measure lift:</strong> ${r.post_campaign_lift_method}</div>` : ''}
+    </div>`;
+}
+
+function renderCampaignResult(r, product, channel, treatment, control, rawLift) {
+  const liftColor = r.lift_percent >= 10 ? '#1D9E75' : r.lift_percent >= 0 ? '#BA7517' : '#A32D2D';
+  const recs = (r.recommendations || []).map(rec =>
+    `<div class="signal-row"><span style="color:#1D9E75;flex-shrink:0;">✓</span><span>${rec}</span></div>`
+  ).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="font-size:16px;font-weight:500;margin-bottom:1rem;">${product} via ${channel} — Campaign lift</div>
+      <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem;">
+        <div class="metric">
+          <div class="metric-label">Sales lift</div>
+          <div class="metric-val" style="color:${liftColor};">${r.lift_percent > 0 ? '+' : ''}${r.lift_percent}%</div>
+          <div class="metric-sub">${r.lift_significance}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Treatment group</div>
+          <div class="metric-val">${treatment.toLocaleString()}</div>
+          <div class="metric-sub">units sold</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Control group</div>
+          <div class="metric-val">${control.toLocaleString()}</div>
+          <div class="metric-sub">units sold</div>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#555;line-height:1.7;margin-bottom:1rem;">${r.interpretation || ''}</p>
+      ${r.revenue_impact_estimate ? `<div style="background:#EAF3DE;border-radius:8px;padding:10px;font-size:13px;margin-bottom:1rem;"><strong>💰 Revenue impact:</strong> ${r.revenue_impact_estimate}</div>` : ''}
+      ${recs ? `<div class="section-label">Recommendations</div>${recs}` : ''}
+      ${r.next_test_suggestion ? `<div style="background:#f5f5f3;border-radius:8px;padding:10px;margin-top:1rem;font-size:13px;"><strong>🧪 Next test:</strong> ${r.next_test_suggestion}</div>` : ''}
+      ${r.attribution_notes ? `<div style="font-size:12px;color:#888;margin-top:1rem;padding-top:1rem;border-top:1px solid #f5f5f3;">${r.attribution_notes}</div>` : ''}
+    </div>`;
+}
+
+function renderCustomResult(r, q) {
+  const recs = (r.key_recommendations || []).map(rec =>
+    `<div class="signal-row"><span style="color:#378ADD;flex-shrink:0;">→</span><span>${rec}</span></div>`
+  ).join('');
+  const skus = (r.relevant_skus || []).map(s => `<span class="sku-tag">${s}</span>`).join('');
+  const segs = (r.relevant_segments || []).map(s => `<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px;background:#f5f5f3;color:#555;">${s}</span>`).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="font-size:13px;color:#888;font-style:italic;margin-bottom:1rem;">"${q}"</div>
+      <p style="font-size:15px;line-height:1.7;margin-bottom:1rem;">${r.answer || ''}</p>
+      ${recs ? `<div class="section-label">Recommendations</div>${recs}` : ''}
+      ${skus ? `<div style="margin-top:1rem;"><div class="section-label">Relevant SKUs</div>${skus}</div>` : ''}
+      ${segs ? `<div style="margin-top:1rem;"><div class="section-label">Relevant segments</div>${segs}</div>` : ''}
+      ${r.caveats ? `<div style="font-size:12px;color:#888;margin-top:1rem;padding:8px;background:#f5f5f3;border-radius:6px;">⚠ ${r.caveats}</div>` : ''}
+    </div>`;
+}
+
+buildSegments();
+</script>
+</body>
+</html>
