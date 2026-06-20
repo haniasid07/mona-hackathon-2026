@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 5 — Interview Question Generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 780px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .role-btn { border: 1.5px solid #e5e5e3; border-radius: 10px; padding: 14px 12px; cursor: pointer; background: white; text-align: left; transition: all 0.15s; }
+  .role-btn:hover { border-color: #aaa; background: #fafaf8; }
+  .role-btn.active { border-color: #378ADD; border-width: 2px; background: #EBF4FC; }
+  .role-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .role-sub { font-size: 11px; color: #888; }
+  textarea { width: 100%; border: 1px solid #e5e5e3; border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 120px; background: #fafaf8; color: #1a1a18; }
+  textarea:focus { outline: none; border-color: #378ADD; background: white; }
+  .generate-btn { width: 100%; padding: 14px; background: #1a1a18; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1rem; transition: background 0.15s; }
+  .generate-btn:hover { background: #333; }
+  .generate-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result-section { margin-top: 1.5rem; }
+  .q-section { margin-bottom: 1.5rem; }
+  .q-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0ee; }
+  .q-icon { font-size: 20px; }
+  .q-title { font-size: 15px; font-weight: 500; }
+  .q-count { font-size: 12px; color: #888; margin-left: auto; }
+  .question-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f3; }
+  .question-item:last-child { border-bottom: none; }
+  .q-num { font-size: 13px; color: #aaa; font-weight: 500; min-width: 24px; margin-top: 1px; }
+  .q-text { font-size: 14px; line-height: 1.6; flex: 1; }
+  .q-note { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
+  .redflag-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f5f3; align-items: flex-start; }
+  .redflag-item:last-child { border-bottom: none; }
+  .flag-sev { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; }
+  .sev-high { background: #FCEBEB; color: #A32D2D; }
+  .sev-med { background: #FAEEDA; color: #854F0B; }
+  .sev-low { background: #EAF3DE; color: #3B6D11; }
+  .flag-text { font-size: 14px; line-height: 1.5; }
+  .summary-box { background: #E6F1FB; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; }
+  .summary-label { font-size: 11px; color: #185FA5; font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-text { font-size: 14px; color: #1a1a18; line-height: 1.6; }
+  .copy-btn { font-size: 12px; color: #888; background: none; border: 1px solid #e5e5e3; border-radius: 6px; padding: 4px 10px; cursor: pointer; float: right; margin-top: -2px; }
+  .copy-btn:hover { background: #f5f5f3; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">🎯</span>
+    <div>
+      <h1>Interview question generator</h1>
+      <div class="subtitle">Kohlpharma GmbH — Problem 5 — Interview support for non-technical hirers</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Step 1 — Choose a sample role or paste your own job description</div>
+    <div class="role-grid">
+      <button class="role-btn" onclick="selectRole(0, this)">
+        <div class="role-title">👥 Hiring Manager</div>
+        <div class="role-sub">People & Talent · MONA AI</div>
+      </button>
+      <button class="role-btn" onclick="selectRole(1, this)">
+        <div class="role-title">⚙️ GTM Engineer</div>
+        <div class="role-sub">Revenue · MONA AI</div>
+      </button>
+      <button class="role-btn" onclick="selectRole(2, this)">
+        <div class="role-title">🚀 Forward Deployed Eng.</div>
+        <div class="role-sub">Solutions · MONA AI</div>
+      </button>
+    </div>
+
+    <div class="section-label">Job description</div>
+    <textarea id="jobText" placeholder="Paste any job description here, or click a sample role above..."></textarea>
+
+    <button class="generate-btn" id="genBtn" onclick="generate()">
+      Generate interview kit ↗
+    </button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const ROLES = [
+  `Hiring Manager — People & Talent at MONA AI GmbH (Saarbrücken, hybrid)
+
+About the role: Run full-cycle recruiting for a fast-scaling AI product company. Partner with technical and commercial leads, design scorecards, and protect candidate experience while keeping time-to-hire low.
+
+Responsibilities:
+- Run full-cycle recruiting: intake, sourcing strategy, screening, scheduling, offer and close
+- Design structured interview kits and scorecards with hiring leads; standardise rubrics
+- Own the ATS, pipeline hygiene and weekly hiring metrics (funnel, time-to-fill, pass-through)
+- Coach interviewers on bias-aware, competency-based interviewing
+- Manage employer-branding basics and an inclusive, GDPR-compliant candidate experience
+
+Must-have: 3+ years in-house recruiting in tech/startups, track record closing roles across functions, hands-on with an ATS (Greenhouse/Personio/Join), fluent German and English, working knowledge of German labour-law and GDPR in recruiting.
+
+Nice to have: Experience hiring AI/ML talent, familiarity with competency frameworks, comfort building hiring dashboards.
+
+Red flags to watch: over-reliance on 'gut feel', vague metrics, poor GDPR awareness.`,
+
+  `Go-to-Market (GTM) Engineer at MONA AI GmbH (Saarbrücken / remote EU)
+
+About the role: Hybrid technical-commercial role. Automate the GTM motion end-to-end: enrich and route leads, build outbound and lifecycle workflows, wire the data between CRM and product, and ship internal tools (often AI-assisted) that make the revenue team faster.
+
+Responsibilities:
+- Design and maintain lead enrichment, scoring and routing pipelines
+- Build outbound/lifecycle automations and integrations across CRM, product and billing data
+- Develop internal tools and lightweight apps including LLM-powered workflows for sales & CS
+- Instrument the funnel: event tracking, attribution, and revenue dashboards
+- Run experiments on messaging, sequencing and conversion
+
+Must-have: 3+ years software/data engineering, strong SQL and at least one scripting language (Python/JS/Ruby), hands-on CRM admin or dev experience (HubSpot/Salesforce), REST APIs and webhooks, comfortable building with LLM APIs.
+
+Stack: Python/TypeScript, HubSpot or Salesforce, SQL, BigQuery/Postgres, LLM APIs, n8n/Make/Zapier.
+
+Red flags: can't explain a pipeline they built, conflates 'ran a tool' with 'engineered a system'.`,
+
+  `Forward Deployed Engineer (FDE) at MONA AI GmbH (Saarbrücken + customer travel ~30%)
+
+About the role: Senior engineers who deploy directly into customer environments, scope ambiguous problems, and build and integrate AI-agent solutions against real data and systems. Own delivery from discovery to production hand-off.
+
+Responsibilities:
+- Scope customer problems on-site; translate vague requirements into a concrete technical plan
+- Build, integrate and deploy agentic workflows against customer data, APIs and internal systems
+- Design retrieval/RAG pipelines and evaluate LLM output quality with real test sets
+- Harden integrations: auth, error handling, observability, and security/PII handling
+- Run production hand-off, documentation and enablement
+
+Must-have: 4+ years software engineering with strong Python and SQL, built and shipped LLM/agent or data-integration systems, solid on APIs/cloud/containers/CI-CD, customer-facing maturity, fluent English.
+
+Stack: Python, SQL, LLM & agent frameworks, vector DBs (pgvector/Pinecone/Weaviate), RAG & eval tooling, AWS/GCP/Azure, Docker.
+
+Red flags: only toy/demo projects, no eval methodology, can't describe a real customer trade-off.`
+];
+
+function selectRole(i, btn) {
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('jobText').value = ROLES[i];
+}
+
+async function generate() {
+  const jobText = document.getElementById('jobText').value.trim();
+  if (!jobText) { alert('Please paste a job description or select a sample role first.'); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating interview kit...';
+  document.getElementById('resultArea').innerHTML = '';
+
+  const prompt = `You are an expert technical recruiter helping a NON-TECHNICAL hiring manager conduct a great interview.
+
+Based on this job description:
+${jobText}
+
+Generate a complete interview kit as JSON with exactly this structure:
+{
+  "role_summary": string (2-3 sentences explaining the role in plain language for a non-technical hirer),
+  "what_good_looks_like": string (2-3 sentences on what a strong candidate would demonstrate),
+  "technical_questions": [
+    { "question": string, "what_to_listen_for": string, "red_flag_answer": string }
+  ],
+  "behavioral_questions": [
+    { "question": string, "what_to_listen_for": string }
+  ],
+  "red_flags": [
+    { "flag": string, "severity": "high"|"medium"|"low", "why_it_matters": string }
+  ],
+  "suggested_opening": string (a warm 2-sentence opening the interviewer can read aloud to start the interview)
+}
+
+Rules:
+- 8 technical questions tailored specifically to this role
+- 5 behavioral questions using STAR format prompts  
+- 6 red flags to watch for in answers
+- Keep language simple enough for a non-technical interviewer to understand
+- Make "what_to_listen_for" practical and specific
+- Return ONLY valid JSON, no markdown`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3000,
+        system: 'You are an expert recruiter. Return ONLY valid JSON, no markdown backticks.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r);
+  } catch(err) {
+    document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:1.5rem;color:#A32D2D;">Error generating interview kit. Please try again.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Generate interview kit ↗';
+  }
+}
+
+function renderResult(r) {
+  const techQs = (r.technical_questions || []).map((q, i) => `
+    <div class="question-item">
+      <div class="q-num">${i+1}.</div>
+      <div>
+        <div class="q-text">${q.question}</div>
+        <div class="q-note">✓ Listen for: ${q.what_to_listen_for}</div>
+        ${q.red_flag_answer ? `<div class="q-note" style="color:#A32D2D;">⚠ Red flag: ${q.red_flag_answer}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  const behavQs = (r.behavioral_questions || []).map((q, i) => `
+    <div class="question-item">
+      <div class="q-num">${i+1}.</div>
+      <div>
+        <div class="q-text">${q.question}</div>
+        <div class="q-note">✓ Listen for: ${q.what_to_listen_for}</div>
+      </div>
+    </div>`).join('');
+
+  const flags = (r.red_flags || []).map(f => {
+    const cls = f.severity === 'high' ? 'sev-high' : f.severity === 'medium' ? 'sev-med' : 'sev-low';
+    return `<div class="redflag-item">
+      <span class="flag-sev ${cls}">${f.severity}</span>
+      <div><div class="flag-text">${f.flag}</div><div class="q-note">${f.why_it_matters}</div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-section">
+      ${r.suggested_opening ? `
+      <div class="card">
+        <div class="section-label">💬 Suggested opening (read this aloud to start)</div>
+        <p style="font-size:15px;line-height:1.7;color:#1a1a18;font-style:italic;">"${r.suggested_opening}"</p>
+      </div>` : ''}
+
+      <div class="card">
+        <div class="summary-box">
+          <div class="summary-label">Role summary for the interviewer</div>
+          <div class="summary-text">${r.role_summary || ''}</div>
+        </div>
+        <div class="summary-label" style="margin-top:0;">What a strong candidate looks like</div>
+        <p style="font-size:14px;line-height:1.6;color:#444;">${r.what_good_looks_like || ''}</p>
+      </div>
+
+      <div class="card">
+        <div class="q-header">
+          <span class="q-icon">🔧</span>
+          <span class="q-title">Technical questions</span>
+          <span class="q-count">${(r.technical_questions||[]).length} questions</span>
+          <button class="copy-btn" onclick="copySection('tech')">Copy all</button>
+        </div>
+        <div id="tech">${techQs}</div>
+      </div>
+
+      <div class="card">
+        <div class="q-header">
+          <span class="q-icon">🧠</span>
+          <span class="q-title">Behavioral questions</span>
+          <span class="q-count">${(r.behavioral_questions||[]).length} questions</span>
+          <button class="copy-btn" onclick="copySection('behav')">Copy all</button>
+        </div>
+        <div id="behav">${behavQs}</div>
+      </div>
+
+      <div class="card">
+        <div class="q-header">
+          <span class="q-icon">🚩</span>
+          <span class="q-title">Red flags to watch for</span>
+          <span class="q-count">${(r.red_flags||[]).length} flags</span>
+        </div>
+        ${flags}
+      </div>
+    </div>`;
+}
+
+function copySection(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy all', 2000);
+  });
+}
+</script>
+</body>
+</html>
