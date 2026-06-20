@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 4 — Certificate & CV Fraud Detector</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 720px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .upload-zone { border: 1.5px dashed #ccc; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; background: white; transition: background 0.15s; }
+  .upload-zone:hover { background: #f0f0ee; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin: 1.5rem 0 8px; }
+  .cert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .cert-thumb { border: 1.5px solid #e5e5e3; border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; background: white; position: relative; }
+  .cert-thumb:hover { border-color: #aaa; }
+  .cert-thumb.active { border-color: #378ADD; border-width: 2px; }
+  .cert-thumb img { width: 100%; height: 110px; object-fit: cover; display: block; background: #f0f0ee; }
+  .cert-label { font-size: 11px; padding: 6px 8px; color: #666; background: #fafaf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cert-badge { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: 600; }
+  .result-card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 8px; }
+  .badge-auth { background: #EAF3DE; color: #3B6D11; }
+  .badge-susp { background: #FAEEDA; color: #854F0B; }
+  .badge-fake { background: #FCEBEB; color: #A32D2D; }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0; }
+  .metric { background: #f5f5f3; border-radius: 8px; padding: 12px; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric-val { font-size: 22px; font-weight: 500; }
+  .bar { height: 6px; border-radius: 3px; background: #eee; margin-top: 6px; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .meta-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0ee; font-size: 14px; gap: 12px; }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-label { color: #888; flex-shrink: 0; }
+  .meta-val { font-weight: 500; text-align: right; }
+  .flag { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f5f5f3; }
+  .flag:last-child { border-bottom: none; }
+  .rec-box { margin-top: 1rem; padding: 12px; background: #E6F1FB; border-radius: 8px; }
+  .rec-label { font-size: 11px; color: #185FA5; font-weight: 500; margin-bottom: 4px; }
+  .rec-text { font-size: 13px; color: #1a1a18; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #ddd; border-top-color: #888; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-card { text-align: center; padding: 2rem; background: white; border: 1px solid #e5e5e3; border-radius: 12px; margin-top: 1rem; color: #888; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">🔍</span>
+    <div>
+      <h1>Certificate & CV fraud detector</h1>
+      <div class="subtitle">Persowerk Deutschland GmbH — Problem 4 — AI-generated document detection</div>
+    </div>
+  </div>
+
+  <div class="upload-zone" onclick="document.getElementById('certInput').click()" ondragover="event.preventDefault(); this.style.background='#f0f0ee'" ondragleave="this.style.background='white'" ondrop="handleDrop(event)">
+    <div style="font-size:36px;margin-bottom:12px;">⬆️</div>
+    <div style="font-weight:500;">Drop a certificate or CV image here</div>
+    <div style="font-size:13px;color:#888;margin-top:4px;">JPG, PNG, or PDF</div>
+  </div>
+  <input type="file" id="certInput" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleUpload(this.files[0])">
+
+  <div class="section-label">Or analyse a sample certificate</div>
+  <div class="cert-grid" id="certGrid"></div>
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const REPO = 'https://raw.githubusercontent.com/haniasid07/mona-hackathon-2026/master/certificates_part_4/';
+const SAMPLES = [
+  { label: 'ISACA BSIG-Zertifikat', file: '2023-09-01_ISACA Germany - BSIG-Zertifikat - Hubertus Storck.jpg' },
+  { label: 'Bachelor-Zertifikat', file: 'bachelor_zertifikat.jpg' },
+  { label: 'Lizenz Seczruty', file: 'lizenz_seczruty.jpg' },
+  { label: 'Koch-Ausbildung', file: 'zertifikat_koch_ausbildung.jpg' },
+  { label: 'Zeugnis Master (ECFB)', file: 'zeugnis-master_ecfb.jpg' },
+];
+
+function buildGrid() {
+  const grid = document.getElementById('certGrid');
+  SAMPLES.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'cert-thumb';
+    div.id = 'thumb-' + i;
+    div.innerHTML = `<img src="${REPO + encodeURIComponent(s.file)}" alt="${s.label}"><div class="cert-label">${s.label}</div><div class="cert-badge" id="cbadge-${i}" style="display:none;"></div>`;
+    div.onclick = () => runSample(i);
+    grid.appendChild(div);
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.querySelector('.upload-zone').style.background = 'white';
+  if (e.dataTransfer.files[0]) handleUpload(e.dataTransfer.files[0]);
+}
+
+async function handleUpload(file) {
+  showLoading('Reading ' + file.name + '...');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const b64 = e.target.result.split(',')[1];
+    const mt = file.type.includes('pdf') ? 'application/pdf' : 'image/jpeg';
+    await callClaude(b64, mt, file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runSample(i) {
+  document.querySelectorAll('.cert-thumb').forEach(el => el.classList.remove('active'));
+  document.getElementById('thumb-' + i).classList.add('active');
+  showLoading('Analysing ' + SAMPLES[i].label + '...');
+  const url = REPO + encodeURIComponent(SAMPLES[i].file);
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const b64 = e.target.result.split(',')[1];
+      const r = await callClaude(b64, 'image/jpeg', SAMPLES[i].label, i);
+    };
+    reader.readAsDataURL(blob);
+  } catch {
+    await callClaudeURL(url, SAMPLES[i].label, i);
+  }
+}
+
+const PROMPT = (name) => `Analyse this certificate/document image called "${name}" for authenticity and fraud. Return ONLY valid JSON:
+{
+  "verdict": "AUTHENTIC"|"SUSPICIOUS"|"LIKELY_FAKE",
+  "document_type": string,
+  "issuer": string or null,
+  "holder_name": string or null,
+  "issue_date": string or null,
+  "expiry_date": string or null,
+  "authenticity_score": number (0-100),
+  "ai_generated_probability": number (0-100),
+  "red_flags": [{"flag": string, "severity": "low"|"medium"|"high"}],
+  "positive_indicators": [string],
+  "recommendation": string,
+  "summary": string
+}
+Check for: font inconsistencies, AI artifacts, missing seals/signatures, implausible issuers, date inconsistencies.`;
+
+async function callClaude(b64, mediaType, name, idx) {
+  const contentType = mediaType.includes('pdf') ? 'document' : 'image';
+  const source = mediaType.includes('pdf')
+    ? { type: 'base64', media_type: 'application/pdf', data: b64 }
+    : { type: 'base64', media_type: 'image/jpeg', data: b64 };
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1000,
+        system: 'You are a document fraud detection expert. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: [
+          { type: contentType, source },
+          { type: 'text', text: PROMPT(name) }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, idx);
+  } catch { showError(); }
+}
+
+async function callClaudeURL(url, name, idx) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1000,
+        system: 'You are a document fraud detection expert. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'url', url } },
+          { type: 'text', text: PROMPT(name) }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, idx);
+  } catch { showError(); }
+}
+
+function showLoading(msg) {
+  document.getElementById('resultArea').innerHTML = `<div class="loading-card"><span class="spinner"></span>${msg}</div>`;
+}
+function showError() {
+  document.getElementById('resultArea').innerHTML = '<div class="loading-card" style="color:#A32D2D;">Analysis failed. Please try again.</div>';
+}
+
+function renderResult(r, idx) {
+  const vmap = {
+    AUTHENTIC: { cls: 'badge-auth', label: 'Authentic', icon: '✅', bg: '#1D9E75', sym: '✓' },
+    SUSPICIOUS: { cls: 'badge-susp', label: 'Suspicious', icon: '⚠️', bg: '#BA7517', sym: '!' },
+    LIKELY_FAKE: { cls: 'badge-fake', label: 'Likely fake', icon: '❌', bg: '#E24B4A', sym: '✗' },
+  };
+  const v = vmap[r.verdict] || vmap.SUSPICIOUS;
+  const auth = Math.round(r.authenticity_score || 0);
+  const aiP = Math.round(r.ai_generated_probability || 0);
+  const authCol = auth >= 75 ? '#1D9E75' : auth >= 50 ? '#BA7517' : '#E24B4A';
+  const aiCol = aiP >= 60 ? '#E24B4A' : aiP >= 30 ? '#BA7517' : '#1D9E75';
+
+  if (idx !== undefined) {
+    const cb = document.getElementById('cbadge-' + idx);
+    if (cb) { cb.style.display = 'flex'; cb.style.background = v.bg; cb.textContent = v.sym; }
+  }
+
+  const row = (l, val) => val ? `<div class="meta-row"><span class="meta-label">${l}</span><span class="meta-val">${val}</span></div>` : '';
+  const flags = (r.red_flags || []).map(f => {
+    const c = f.severity === 'high' ? '#A32D2D' : f.severity === 'medium' ? '#854F0B' : '#888';
+    const ic = f.severity === 'high' ? '🔴' : f.severity === 'medium' ? '🟡' : '🔵';
+    return `<div class="flag"><span>${ic}</span><span style="color:#1a1a18;">${f.flag}</span></div>`;
+  }).join('') || '<p style="font-size:13px;color:#888;padding:8px 0;">No red flags detected.</p>';
+  const pos = (r.positive_indicators || []).map(p => `<div style="display:flex;gap:8px;padding:4px 0;font-size:13px;"><span style="color:#1D9E75;">✓</span><span>${p}</span></div>`).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">${v.icon}</span>
+          <span class="badge ${v.cls}">${v.label}</span>
+        </div>
+        <div style="font-size:13px;color:#888;">Authenticity: <strong style="color:${authCol};">${auth}%</strong> &nbsp;|&nbsp; AI probability: <strong style="color:${aiCol};">${aiP}%</strong></div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Authenticity score</div><div class="metric-val" style="color:${authCol};">${auth}%</div><div class="bar"><div class="bar-fill" style="width:${auth}%;background:${authCol};"></div></div></div>
+        <div class="metric"><div class="metric-label">AI-generated probability</div><div class="metric-val" style="color:${aiCol};">${aiP}%</div><div class="bar"><div class="bar-fill" style="width:${aiP}%;background:${aiCol};"></div></div></div>
+      </div>
+      <p style="font-size:14px;color:#888;font-style:italic;margin-bottom:1rem;">${r.summary || ''}</p>
+      ${row('Document type', r.document_type)}
+      ${row('Issuer', r.issuer)}
+      ${row('Holder', r.holder_name)}
+      ${row('Issue date', r.issue_date)}
+      ${r.expiry_date ? row('Expiry', r.expiry_date) : ''}
+      ${r.red_flags && r.red_flags.length ? `<div style="margin-top:1rem;"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Red flags</div>${flags}</div>` : ''}
+      ${pos ? `<div style="margin-top:1rem;"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Positive indicators</div>${pos}</div>` : ''}
+      <div class="rec-box"><div class="rec-label">HR recommendation</div><div class="rec-text">${r.recommendation || ''}</div></div>
+    </div>`;
+}
+
+buildGrid();
+</script>
+</body>
+</html>

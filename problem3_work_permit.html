@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 3 — Work Permit Validator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 720px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
+  .header-icon { font-size: 32px; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .upload-zone { border: 1.5px dashed #ccc; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: background 0.15s; background: white; }
+  .upload-zone:hover { background: #f0f0ee; }
+  .upload-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+  .upload-title { font-weight: 500; font-size: 15px; }
+  .upload-sub { font-size: 13px; color: #888; margin-top: 4px; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin: 1.5rem 0 8px; }
+  .file-list { display: flex; flex-direction: column; gap: 8px; }
+  .file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 8px; font-size: 14px; cursor: pointer; border: 1px solid #e5e5e3; transition: border-color 0.15s; }
+  .file-item:hover { border-color: #aaa; }
+  .file-item.active { border-color: #378ADD; background: #EBF4FC; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+  .dot-valid { background: #1D9E75; }
+  .dot-invalid { background: #E24B4A; }
+  .dot-warning { background: #BA7517; }
+  .result-card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 8px; }
+  .badge-valid { background: #EAF3DE; color: #3B6D11; }
+  .badge-invalid { background: #FCEBEB; color: #A32D2D; }
+  .badge-warning { background: #FAEEDA; color: #854F0B; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0ee; font-size: 14px; }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-label { color: #888; }
+  .meta-value { font-weight: 500; text-align: right; max-width: 60%; }
+  .conf-bar { height: 6px; border-radius: 3px; background: #eee; margin-top: 4px; }
+  .conf-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #ddd; border-top-color: #888; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-card { text-align: center; padding: 2rem; background: white; border: 1px solid #e5e5e3; border-radius: 12px; margin-top: 1rem; color: #888; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="header-icon">📋</span>
+    <div>
+      <h1>Work permit validator</h1>
+      <div class="subtitle">Leistenschneider Personaldienstleistungen GmbH — Problem 3</div>
+    </div>
+  </div>
+
+  <div class="upload-zone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault(); this.style.background='#f0f0ee'" ondragleave="this.style.background='white'" ondrop="handleDrop(event)">
+    <span class="upload-icon">⬆️</span>
+    <div class="upload-title">Drop a work permit PDF here</div>
+    <div class="upload-sub">or click to browse — PDF only</div>
+  </div>
+  <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFile(this.files[0])">
+
+  <div class="section-label">Or try a sample document</div>
+  <div class="file-list">
+    <div class="file-item" onclick="runSample('valid_01')">
+      <span class="status-dot" id="dot-valid_01"></span>
+      <span style="flex:1;">permit_wp_valid_01.pdf — Okonkwo, Amara Chidi (Nigeria)</span>
+      <span id="badge-valid_01"></span>
+    </div>
+    <div class="file-item" onclick="runSample('valid_02')">
+      <span class="status-dot" id="dot-valid_02"></span>
+      <span style="flex:1;">permit_wp_valid_02.pdf — Hernández Morales, Diego (Mexico) — EU Blue Card</span>
+      <span id="badge-valid_02"></span>
+    </div>
+    <div class="file-item" onclick="runSample('invalid_01')">
+      <span class="status-dot" id="dot-invalid_01"></span>
+      <span style="flex:1;">permit_wp_invalid_01.pdf — Al-Sayed, Fatima (Syria) — Expired</span>
+      <span id="badge-invalid_01"></span>
+    </div>
+    <div class="file-item" onclick="runSample('invalid_02')">
+      <span class="status-dot" id="dot-invalid_02"></span>
+      <span style="flex:1;">permit_wp_invalid_02.pdf — Chen, Liang (China) — Student visa, no work right</span>
+      <span id="badge-invalid_02"></span>
+    </div>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const SAMPLES = {
+  valid_01: `BUNDESREPUBLIK DEUTSCHLAND\nAufenthaltstitel · Residence permit\nTYP: AUFENTHALTSERLAUBNIS\nNAME: OKONKWO\nVORNAME: AMARA CHIDI\nSTAATSANGEHÖRIGKEIT: NIGERIA (NGA)\nGEBURTSDATUM: 14.03.1992\nGESCHLECHT: F/W\nDOK.-NR: LP4K8T2Q1\nArt des Titels: Aufenthaltserlaubnis (befristet)\nRechtsgrundlage: § 18a AufenthG — Fachkraft mit Berufsausbildung\nAusstellungsdatum: 15.08.2024\nGültig bis: 14.08.2027\nAusstellende Behörde: Ausländerbehörde Regionalverband Saarbrücken\nAnmerkungen: Beschäftigung gestattet. Dependent employment permitted.\nSample ID: WP-VALID-01`,
+  valid_02: `BUNDESREPUBLIK DEUTSCHLAND\nAufenthaltstitel · Residence permit\nTYP: BLAUE KARTE EU\nNAME: HERNÁNDEZ MORALES\nVORNAME: DIEGO\nSTAATSANGEHÖRIGKEIT: MEXIKO (MEX)\nGEBURTSDATUM: 02.11.1990\nGESCHLECHT: M\nDOK.-NR: BK7R3W9M5\nArt des Titels: Blaue Karte EU (EU Blue Card)\nRechtsgrundlage: § 18b Abs. 2 AufenthG — Hochqualifizierte\nAusstellungsdatum: 01.04.2025\nGültig bis: 31.03.2028\nAusstellende Behörde: Ausländerbehörde Stadt Homburg\nAnmerkungen: Erwerbstätigkeit gestattet. Any employment permitted.\nSample ID: WP-VALID-02`,
+  invalid_01: `BUNDESREPUBLIK DEUTSCHLAND\nAufenthaltstitel · Residence permit\nTYP: AUFENTHALTSERLAUBNIS\nNAME: AL-SAYED\nVORNAME: FATIMA\nSTAATSANGEHÖRIGKEIT: SYRIEN (SYR)\nGEBURTSDATUM: 27.07.1995\nGESCHLECHT: F/W\nDOK.-NR: LX2N6V8B0\nArt des Titels: Aufenthaltserlaubnis (befristet)\nRechtsgrundlage: § 18a AufenthG — Fachkraft mit Berufsausbildung\nAusstellungsdatum: 03.05.2021\nGültig bis: 02.05.2024\nAusstellende Behörde: Ausländerbehörde Landkreis Merzig-Wadern\nAnmerkungen: Erwerbstätigkeit gestattet. Any employment permitted.\nSample ID: WP-INVALID-01`,
+  invalid_02: `BUNDESREPUBLIK DEUTSCHLAND\nAufenthaltstitel · Residence permit\nTYP: AUFENTHALTSERLAUBNIS\nNAME: CHEN\nVORNAME: LIANG\nSTAATSANGEHÖRIGKEIT: CHINA (CHN)\nGEBURTSDATUM: 09.01.2000\nGESCHLECHT: M\nDOK.-NR: ST5H1J7K3\nArt des Titels: Aufenthaltserlaubnis (befristet)\nRechtsgrundlage: § 16b AufenthG — Studium\nAusstellungsdatum: 01.10.2024\nGültig bis: 30.09.2027\nAusstellende Behörde: Ausländerbehörde Regionalverband Saarbrücken\nAnmerkungen: Erwerbstätigkeit nicht gestattet. Employment not permitted.\nSample ID: WP-INVALID-02`
+};
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.querySelector('.upload-zone').style.background = 'white';
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+async function handleFile(file) {
+  showLoading('Analysing ' + file.name + '...');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const b64 = e.target.result.split(',')[1];
+    await callClaudeWithPDF(b64, file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runSample(id) {
+  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  showLoading('Analysing sample permit...');
+  await callClaudeWithText(SAMPLES[id], id);
+}
+
+function showLoading(msg) {
+  document.getElementById('resultArea').innerHTML = `<div class="loading-card"><span class="spinner"></span>${msg}</div>`;
+}
+
+async function callClaudeWithText(text, sampleId) {
+  const today = new Date().toISOString().split('T')[0];
+  const prompt = buildPrompt(today, text);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: 'You are a German work permit validation expert. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, sampleId);
+  } catch(err) {
+    document.getElementById('resultArea').innerHTML = '<div class="loading-card" style="color:#A32D2D;">Error analysing document. Please try again.</div>';
+  }
+}
+
+async function callClaudeWithPDF(b64, filename) {
+  const today = new Date().toISOString().split('T')[0];
+  const prompt = buildPrompt(today, '');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: 'You are a German work permit validation expert. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, filename);
+  } catch(err) {
+    document.getElementById('resultArea').innerHTML = '<div class="loading-card" style="color:#A32D2D;">Error analysing document. Please try again.</div>';
+  }
+}
+
+function buildPrompt(today, docText) {
+  return `Today's date is ${today}. Analyse this German residence/work permit${docText ? ' text' : ' document'} and return JSON:
+{
+  "is_work_permit": boolean,
+  "holder_name": string,
+  "permit_type": string,
+  "document_number": string,
+  "nationality": string,
+  "date_of_birth": string,
+  "issue_date": string,
+  "valid_until": string,
+  "is_expired": boolean,
+  "employment_permitted": boolean,
+  "employment_scope": string,
+  "issuing_authority": string,
+  "validity_status": "VALID"|"EXPIRED"|"NO_WORK_RIGHT"|"INVALID_DOCUMENT",
+  "confidence_percent": number,
+  "rejection_reason": string or null,
+  "summary": string
+}
+${docText ? 'Document text:\n' + docText : 'Analyse the uploaded PDF.'}`;
+}
+
+function renderResult(r, id) {
+  const smap = {
+    VALID: { label: 'Valid work permit', cls: 'badge-valid', dot: 'dot-valid', icon: '✅' },
+    EXPIRED: { label: 'Expired', cls: 'badge-invalid', dot: 'dot-invalid', icon: '❌' },
+    NO_WORK_RIGHT: { label: 'No work right', cls: 'badge-warning', dot: 'dot-warning', icon: '⚠️' },
+    INVALID_DOCUMENT: { label: 'Not a permit', cls: 'badge-invalid', dot: 'dot-invalid', icon: '❌' }
+  };
+  const s = smap[r.validity_status] || smap.INVALID_DOCUMENT;
+  const conf = Math.round(r.confidence_percent || 0);
+  const confColor = conf >= 85 ? '#1D9E75' : conf >= 60 ? '#BA7517' : '#E24B4A';
+
+  const dotEl = document.getElementById('dot-' + id);
+  const badgeEl = document.getElementById('badge-' + id);
+  if (dotEl) dotEl.className = 'status-dot ' + s.dot;
+  if (badgeEl) badgeEl.innerHTML = `<span class="badge ${s.cls}">${s.label}</span>`;
+
+  const row = (label, val) => val ? `<div class="meta-row"><span class="meta-label">${label}</span><span class="meta-value">${val}</span></div>` : '';
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">${s.icon}</span>
+          <span class="badge ${s.cls}">${s.label}</span>
+        </div>
+        <span style="font-size:13px;color:#888;">Confidence: <strong style="color:${confColor};">${conf}%</strong></span>
+      </div>
+      <div class="conf-bar"><div class="conf-fill" style="width:${conf}%;background:${confColor};"></div></div>
+      <p style="margin:1rem 0;font-size:14px;color:#888;font-style:italic;">${r.summary || ''}</p>
+      ${row('Permit holder', r.holder_name)}
+      ${row('Permit type', r.permit_type)}
+      ${row('Document number', r.document_number)}
+      ${row('Nationality', r.nationality)}
+      ${row('Date of birth', r.date_of_birth)}
+      ${row('Issue date', r.issue_date)}
+      ${row('Valid until', `<strong style="color:${r.is_expired ? '#A32D2D' : '#3B6D11'};">${r.valid_until}</strong>`)}
+      ${row('Employment', r.employment_permitted ? '<span class="badge badge-valid">Permitted</span>' : '<span class="badge badge-invalid">Not permitted</span>')}
+      ${r.employment_scope ? row('Scope', r.employment_scope) : ''}
+      ${row('Issuing authority', r.issuing_authority)}
+      ${r.rejection_reason ? row('Issue', `<span style="color:#A32D2D;">${r.rejection_reason}</span>`) : ''}
+    </div>`;
+}
+</script>
+</body>
+</html>
