@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 6 — Marketing Content / Filmmaker Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .prod-btn { border: 1.5px solid #e5e5e3; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: white; text-align: left; transition: all 0.15s; }
+  .prod-btn:hover { border-color: #aaa; background: #fafaf8; }
+  .prod-btn.active { border-color: #378ADD; background: #EBF4FC; border-width: 2px; }
+  .prod-name { font-size: 13px; font-weight: 500; }
+  .prod-meta { font-size: 11px; color: #888; margin-top: 2px; }
+  .angle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .angle-btn { border: 1px solid #e5e5e3; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: white; transition: all 0.15s; font-size: 13px; }
+  .angle-btn:hover { border-color: #aaa; background: #fafaf8; }
+  .angle-btn.active { border-color: #378ADD; background: #EBF4FC; }
+  .platform-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .plat-btn { flex: 1; border: 1px solid #e5e5e3; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; font-size: 13px; transition: all 0.15s; background: white; }
+  .plat-btn:hover { border-color: #aaa; }
+  .plat-btn.active { border-color: #378ADD; background: #EBF4FC; font-weight: 500; }
+  .run-btn { width: 100%; padding: 14px; background: #1a1a18; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .run-btn:hover { background: #333; }
+  .run-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Storyboard */
+  .storyboard { display: flex; flex-direction: column; gap: 12px; }
+  .scene-card { border: 1px solid #e5e5e3; border-radius: 10px; overflow: hidden; display: flex; gap: 0; }
+  .scene-visual { width: 120px; flex-shrink: 0; background: #1a1a18; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; color: white; text-align: center; }
+  .scene-num { font-size: 11px; color: #888; }
+  .scene-duration { font-size: 18px; font-weight: 500; margin-top: 4px; }
+  .scene-type { font-size: 10px; color: #aaa; margin-top: 2px; text-transform: uppercase; }
+  .scene-body { flex: 1; padding: 12px; }
+  .scene-shot { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .scene-desc { font-size: 13px; color: #555; line-height: 1.5; }
+  .scene-text { font-size: 12px; color: #378ADD; margin-top: 6px; font-style: italic; }
+  .scene-audio { font-size: 12px; color: #888; margin-top: 4px; }
+  .scene-zone { font-size: 11px; color: #888; margin-top: 4px; }
+
+  /* Phone mockup / safe zone preview */
+  .phone-wrap { display: flex; justify-content: center; margin: 1rem 0; }
+  .phone { width: 200px; height: 356px; background: #111; border-radius: 24px; border: 3px solid #333; position: relative; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .phone-screen { position: absolute; inset: 0; background: linear-gradient(160deg, #1a3a2a 0%, #0d1f17 100%); }
+  .safe-top { position: absolute; top: 0; left: 0; right: 0; height: 23px; background: rgba(255,80,80,0.25); border-bottom: 1px dashed rgba(255,80,80,0.6); }
+  .safe-bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: rgba(255,80,80,0.25); border-top: 1px dashed rgba(255,80,80,0.6); }
+  .safe-right { position: absolute; top: 0; bottom: 0; right: 0; width: 20px; background: rgba(255,80,80,0.15); border-left: 1px dashed rgba(255,80,80,0.4); }
+  .safe-left { position: absolute; top: 0; bottom: 0; left: 0; width: 6px; background: rgba(255,80,80,0.15); border-right: 1px dashed rgba(255,80,80,0.4); }
+  .safe-zone-label { position: absolute; top: 26px; left: 8px; right: 22px; bottom: 82px; border: 1.5px dashed rgba(255,255,255,0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .safe-text { color: rgba(255,255,255,0.5); font-size: 9px; text-align: center; }
+  .overlay-example { position: absolute; top: 30px; left: 8px; right: 22px; }
+  .overlay-headline { color: white; font-size: 10px; font-weight: 600; }
+  .overlay-sub { color: rgba(255,255,255,0.8); font-size: 8px; margin-top: 2px; }
+  .overlay-logo { position: absolute; top: 30px; right: 24px; color: #7ed56f; font-size: 8px; font-weight: 600; }
+  .cta-overlay { position: absolute; bottom: 85px; left: 8px; right: 22px; background: rgba(0,160,80,0.9); border-radius: 4px; padding: 4px 6px; }
+  .cta-text { color: white; font-size: 8px; font-weight: 600; }
+  .icon-col { position: absolute; right: 2px; top: 80px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .icon-item { color: white; font-size: 12px; }
+  .caption-area { position: absolute; bottom: 30px; left: 8px; right: 22px; }
+  .caption-bar { background: rgba(0,0,0,0.7); border-radius: 3px; padding: 3px 5px; font-size: 7px; color: rgba(255,255,255,0.9); }
+
+  /* Labels */
+  .safe-label { position: absolute; font-size: 7px; color: rgba(255,80,80,0.9); }
+  .label-top { top: 3px; left: 50%; transform: translateX(-50%); }
+  .label-bottom { bottom: 40px; left: 50%; transform: translateX(-50%); }
+  .label-right { right: 0px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+
+  .script-block { background: #f5f5f3; border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.8; margin: 1rem 0; white-space: pre-wrap; font-family: 'Courier New', monospace; }
+  .caption-copy { font-size: 12px; color: #888; cursor: pointer; border: none; background: none; padding: 4px 8px; border-radius: 4px; }
+  .caption-copy:hover { background: #f5f5f3; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin: 2px; }
+  .tag-tiktok { background: #f5f5f3; color: #555; }
+  .tag-ig { background: #FBEAF0; color: #993556; }
+  .tag-guardrail { background: #FAEEDA; color: #854F0B; }
+  .tag-ok { background: #EAF3DE; color: #3B6D11; }
+  select { width: 100%; border: 1px solid #e5e5e3; border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 13px; background: white; color: #1a1a18; }
+  select:focus { outline: none; border-color: #378ADD; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">🎬</span>
+    <div>
+      <h1>Marketing content / filmmaker agent</h1>
+      <div class="subtitle">Dr. Theiss / Allgäuer Latschenkiefer — Problem 6 — Short-form reel scripts with safe zone compliance</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">1. Choose hero product</div>
+    <div class="product-grid" id="productGrid"></div>
+
+    <div class="section-label">2. Content angle</div>
+    <div class="angle-grid" id="angleGrid"></div>
+
+    <div class="section-label">3. Platform</div>
+    <div class="platform-row" id="platformRow"></div>
+
+    <div class="section-label">4. Duration</div>
+    <select id="duration" style="margin-bottom:1rem;">
+      <option value="15">15 seconds (maximum hook)</option>
+      <option value="30" selected>30 seconds (standard reel)</option>
+      <option value="60">60 seconds (story arc)</option>
+    </select>
+
+    <button class="run-btn" id="runBtn" onclick="generateContent()" disabled>🎬 Generate reel script & storyboard ↗</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const PRODUCTS = [
+  { name:'Mobil Gel', line:'Muscles', segment:'Active 30+', peak:'Autumn–Winter', hook:'joint relief' },
+  { name:'Mobil Eisspray akut', line:'Muscles', segment:'Athletes', peak:'Sport season', hook:'instant recovery' },
+  { name:'5 in 1 Beinlotion', line:'Legs', segment:'Women 35–65', peak:'Summer', hook:'heavy legs relief' },
+  { name:'Sole Fußbad', line:'Feet', segment:'Wellness 50+', peak:'Winter', hook:'ASMR foot bath ritual' },
+  { name:'Fuß Butter', line:'Feet', segment:'Women 45+', peak:'Autumn–Winter', hook:'ultra-dry skin rescue' },
+  { name:'Hornhaut Entferner Maske', line:'Feet', segment:'Women 25–45', peak:'Spring–Summer', hook:'sandal season before/after' },
+];
+
+const ANGLES = [
+  { id:'ritual', label:'🛁 Ritual / ASMR', desc:'Slow, satisfying self-care routine' },
+  { id:'recovery', label:'⚡ Post-workout recovery', desc:'15-sec sport recovery hook' },
+  { id:'relatable', label:'😮‍💨 Relatable hook', desc:'"Heavy legs after a shift" pain point' },
+  { id:'origin', label:'🌿 Ingredient origin story', desc:'Allgäu plantation → bottle journey' },
+  { id:'before_after', label:'✨ Before / After', desc:'Dramatic transformation reveal' },
+  { id:'tutorial', label:'📋 How-to tutorial', desc:'Step-by-step application guide' },
+];
+
+const PLATFORMS = ['TikTok', 'Instagram Reels', 'Both'];
+
+let selProduct = null, selAngle = null, selPlatform = 'Both';
+
+function buildUI() {
+  const pg = document.getElementById('productGrid');
+  PRODUCTS.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.className = 'prod-btn'; b.id = 'pb-' + i;
+    b.innerHTML = `<div class="prod-name">${p.name}</div><div class="prod-meta">${p.line} · ${p.hook}</div>`;
+    b.onclick = () => { document.querySelectorAll('.prod-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); selProduct = i; checkReady(); };
+    pg.appendChild(b);
+  });
+
+  const ag = document.getElementById('angleGrid');
+  ANGLES.forEach((a, i) => {
+    const b = document.createElement('button');
+    b.className = 'angle-btn'; b.id = 'ab-' + i;
+    b.innerHTML = `<strong>${a.label}</strong><br><span style="color:#888;font-size:11px;">${a.desc}</span>`;
+    b.onclick = () => { document.querySelectorAll('.angle-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); selAngle = i; checkReady(); };
+    ag.appendChild(b);
+  });
+
+  const pr = document.getElementById('platformRow');
+  PLATFORMS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'plat-btn' + (p === 'Both' ? ' active' : '');
+    b.textContent = p;
+    b.onclick = () => { document.querySelectorAll('.plat-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); selPlatform = p; };
+    pr.appendChild(b);
+  });
+}
+
+function checkReady() {
+  document.getElementById('runBtn').disabled = !(selProduct !== null && selAngle !== null);
+}
+
+async function generateContent() {
+  const p = PRODUCTS[selProduct];
+  const a = ANGLES[selAngle];
+  const dur = document.getElementById('duration').value;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Writing script & storyboard...';
+  document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:2rem;text-align:center;color:#888;font-size:14px;"><span class="spinner" style="border-top-color:#888;"></span>Generating studio-quality reel script with safe zone compliance...</div>';
+
+  const prompt = `You are a professional social media filmmaker and content strategist for Allgäuer Latschenkiefer, a German pharmacy OTC brand known for dwarf mountain-pine oil products.
+
+Create a complete short-form vertical reel package for:
+- Product: ${p.name} (${p.line} care, hero hook: ${p.hook})
+- Target audience: ${p.segment}
+- Content angle: ${a.label} — ${a.desc}
+- Platform: ${selPlatform}
+- Duration: ${dur} seconds
+- Format: 1080×1920 (9:16 vertical)
+
+SAFE ZONE RULES (strict compliance):
+- Top margin: 140px (UI/notification bar)
+- Bottom margin: 480–600px from bottom (caption bar + action icons)
+- Right margin: 120–180px (like/comment/share icons)
+- Left margin: 40px
+- All on-screen text and logos MUST stay within these safe zones
+
+HWG GUARDRAILS (German advertising law):
+- These are cosmetics, NOT drugs — no medical-cure claims
+- No "heals", "treats", "cures" language
+- Use: "pflegt" (cares for), "erfrischt" (refreshes), "verwöhnt" (pampers), "lindert das Gefühl von" (soothes the feeling of)
+- OK to show pleasant sensations, not medical outcomes
+
+Return ONLY valid JSON:
+{
+  "reel_title": string,
+  "hook_line": string (first 2 seconds — must stop the scroll),
+  "total_duration_sec": number,
+  "platform_notes": string,
+  "scenes": [
+    {
+      "scene_number": number,
+      "start_sec": number,
+      "end_sec": number,
+      "shot_type": string (e.g. "Close-up macro", "POV hand shot", "Text overlay on product"),
+      "visual_description": string,
+      "on_screen_text": string or null,
+      "text_safe_zone": string (where text appears: "top-safe", "center", "bottom-safe"),
+      "voiceover_or_caption": string or null,
+      "sound": string (music mood or ASMR description),
+      "transition": string
+    }
+  ],
+  "caption_copy": string (full Instagram/TikTok caption with hashtags),
+  "hashtags": [string],
+  "cta": string (call to action),
+  "compliance_check": [{ "item": string, "status": "ok"|"warning", "note": string }],
+  "production_notes": string
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: 'You are a professional social media filmmaker. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, p, a, dur);
+  } catch(e) {
+    document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:1.5rem;color:#A32D2D;">Generation failed. Please try again.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🎬 Generate reel script & storyboard ↗';
+  }
+}
+
+function renderResult(r, p, a, dur) {
+  // Scenes storyboard
+  const scenes = (r.scenes || []).map(s => {
+    const duration = (s.end_sec - s.start_sec).toFixed(1);
+    const textHtml = s.on_screen_text ? `<div class="scene-text">📝 "${s.on_screen_text}" <span style="color:#aaa;">[${s.text_safe_zone}]</span></div>` : '';
+    const voHtml = s.voiceover_or_caption ? `<div class="scene-audio">🎙 ${s.voiceover_or_caption}</div>` : '';
+    const soundHtml = s.sound ? `<div class="scene-audio">🎵 ${s.sound}</div>` : '';
+    return `<div class="scene-card">
+      <div class="scene-visual">
+        <div class="scene-num">SCENE ${s.scene_number}</div>
+        <div class="scene-duration">${duration}s</div>
+        <div class="scene-type">${s.start_sec}s–${s.end_sec}s</div>
+      </div>
+      <div class="scene-body">
+        <div class="scene-shot">${s.shot_type}</div>
+        <div class="scene-desc">${s.visual_description}</div>
+        ${textHtml}${voHtml}${soundHtml}
+        <div class="scene-zone" style="margin-top:4px;">→ ${s.transition}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Compliance
+  const compliance = (r.compliance_check || []).map(c => {
+    const cls = c.status === 'ok' ? 'tag-ok' : 'tag-guardrail';
+    const icon = c.status === 'ok' ? '✓' : '⚠';
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:13px;border-bottom:1px solid #f5f5f3;">
+      <span class="tag ${cls}" style="flex-shrink:0;">${icon}</span>
+      <div><strong>${c.item}</strong>${c.note ? ` — ${c.note}` : ''}</div>
+    </div>`;
+  }).join('');
+
+  // Hashtags
+  const hashtags = (r.hashtags || []).map(h => `<span style="font-size:12px;color:#378ADD;">${h}</span>`).join(' ');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:17px;font-weight:500;">🎬 ${r.reel_title || p.name + ' Reel'}</div>
+          <div style="font-size:13px;color:#888;margin-top:2px;">${p.name} · ${a.label} · ${dur}s · ${selPlatform}</div>
+        </div>
+        <div style="background:#1a1a18;color:white;border-radius:8px;padding:8px 14px;font-size:13px;">
+          <span style="font-size:16px;">🪝</span> Hook: <strong>"${r.hook_line || ''}"</strong>
+        </div>
+      </div>
+      ${r.platform_notes ? `<div style="background:#f5f5f3;border-radius:8px;padding:10px;font-size:13px;color:#555;margin-bottom:1rem;">${r.platform_notes}</div>` : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 220px;gap:1rem;align-items:start;">
+      <div class="card">
+        <div class="section-label">Storyboard (${(r.scenes||[]).length} scenes)</div>
+        <div class="storyboard">${scenes}</div>
+      </div>
+
+      <div>
+        <div class="card" style="padding:1rem;">
+          <div class="section-label">Safe zone preview</div>
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="phone-screen"></div>
+              <div class="safe-top"><span class="safe-label label-top">TOP UNSAFE (140px)</span></div>
+              <div class="safe-bottom"><span class="safe-label label-bottom">BOTTOM UNSAFE</span></div>
+              <div class="safe-right"></div>
+              <div class="safe-left"></div>
+              <div class="safe-zone-label"><div class="safe-text">✓ SAFE ZONE<br>Text & logos here</div></div>
+              <div class="overlay-example">
+                <div class="overlay-headline">${r.hook_line ? r.hook_line.substring(0, 28) + '…' : 'Hook line here'}</div>
+                <div class="overlay-sub">${p.name}</div>
+              </div>
+              <div class="overlay-logo">ALK</div>
+              <div class="cta-overlay"><div class="cta-text">${r.cta ? r.cta.substring(0, 30) : 'Shop now →'}</div></div>
+              <div class="icon-col">
+                <div class="icon-item">❤️</div>
+                <div class="icon-item">💬</div>
+                <div class="icon-item">↗️</div>
+                <div class="icon-item">☰</div>
+              </div>
+              <div class="caption-area">
+                <div class="caption-bar">${p.name} — ${a.label.substring(0, 20)}</div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:#888;text-align:center;margin-top:4px;">
+            <span style="color:#ff5050;">■</span> Unsafe zones &nbsp; <span style="color:rgba(255,255,255,0.5);">■</span> Safe zone
+          </div>
+        </div>
+
+        <div class="card" style="padding:1rem;">
+          <div class="section-label">Compliance check</div>
+          ${compliance}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="section-label" style="margin:0;">Caption copy</div>
+        <button class="caption-copy" onclick="copyCaption(this, \`${(r.caption_copy || '').replace(/`/g, "'")}\`)">📋 Copy</button>
+      </div>
+      <div class="script-block">${r.caption_copy || ''}</div>
+      <div style="margin-top:8px;">${hashtags}</div>
+    </div>
+
+    ${r.production_notes ? `<div class="card"><div class="section-label">Production notes</div><p style="font-size:13px;color:#555;line-height:1.7;">${r.production_notes}</p></div>` : ''}`;
+}
+
+function copyCaption(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  });
+}
+
+buildUI();
+</script>
+</body>
+</html>
