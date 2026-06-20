@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem 8 — Dynamic Pricing Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 2rem; color: #1a1a18; }
+  .container { max-width: 860px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 14px; color: #888; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+  .prod-btn { border: 1.5px solid #e5e5e3; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: white; text-align: left; transition: all 0.15s; }
+  .prod-btn:hover { border-color: #aaa; background: #fafaf8; }
+  .prod-btn.active { border-color: #378ADD; background: #EBF4FC; border-width: 2px; }
+  .prod-name { font-size: 13px; font-weight: 500; }
+  .prod-meta { font-size: 11px; color: #888; margin-top: 3px; }
+  .signal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 1rem; }
+  .signal-card { border: 1px solid #e5e5e3; border-radius: 8px; padding: 12px; }
+  .signal-title { font-size: 12px; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  select, input[type=range] { width: 100%; border: 1px solid #e5e5e3; border-radius: 6px; padding: 6px 8px; font-family: inherit; font-size: 13px; background: white; color: #1a1a18; }
+  select:focus { outline: none; border-color: #378ADD; }
+  .range-val { font-size: 12px; color: #888; text-align: right; margin-top: 3px; }
+  .run-btn { width: 100%; padding: 14px; background: #1a1a18; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .run-btn:hover { background: #333; }
+  .run-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result-card { background: white; border: 1px solid #e5e5e3; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
+  .price-display { display: flex; align-items: flex-end; gap: 16px; padding: 1.5rem; background: #f5f5f3; border-radius: 10px; margin-bottom: 1rem; }
+  .price-base { text-align: center; }
+  .price-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .price-val { font-size: 32px; font-weight: 500; margin-top: 4px; }
+  .price-arrow { font-size: 24px; color: #aaa; margin-bottom: 8px; }
+  .price-new { text-align: center; }
+  .price-change { font-size: 13px; font-weight: 500; padding: 3px 10px; border-radius: 6px; margin-top: 6px; display: inline-block; }
+  .change-up { background: #EAF3DE; color: #3B6D11; }
+  .change-down { background: #FCEBEB; color: #A32D2D; }
+  .change-flat { background: #f5f5f3; color: #888; }
+  .signal-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin: 2px; }
+  .sig-positive { background: #EAF3DE; color: #3B6D11; }
+  .sig-negative { background: #FCEBEB; color: #A32D2D; }
+  .sig-neutral { background: #f5f5f3; color: #555; }
+  .rationale-row { font-size: 13px; color: #555; padding: 6px 0; border-bottom: 1px solid #f5f5f3; display: flex; gap: 10px; line-height: 1.5; }
+  .rationale-row:last-child { border-bottom: none; }
+  .guardrail { background: #FAEEDA; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 1rem; }
+  .guardrail-label { font-size: 11px; color: #854F0B; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .meta-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f3; font-size: 14px; }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-label { color: #888; }
+  .meta-val { font-weight: 500; }
+  .band-bar { position: relative; height: 10px; background: #eee; border-radius: 5px; margin: 8px 0; }
+  .band-fill { position: absolute; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #FCEBEB 0%, #EAF3DE 50%, #FCEBEB 100%); }
+  .band-marker { position: absolute; top: -4px; width: 3px; height: 18px; border-radius: 2px; transform: translateX(-50%); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span style="font-size:32px;">📊</span>
+    <div>
+      <h1>Dynamic pricing agent</h1>
+      <div class="subtitle">Dr. Theiss / Allgäuer Latschenkiefer — Problem 8 — Signal-driven price recommendations</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Select product</div>
+    <div class="product-grid" id="productGrid"></div>
+
+    <div class="section-label">External signals</div>
+    <div class="signal-grid">
+      <div class="signal-card">
+        <div class="signal-title">🌡️ Weather</div>
+        <select id="sig-weather">
+          <option value="heatwave">Heatwave (35°C+)</option>
+          <option value="hot">Hot summer (28–34°C)</option>
+          <option value="mild" selected>Mild / neutral</option>
+          <option value="cold">Cold (5–10°C)</option>
+          <option value="freezing">Freezing / snow</option>
+        </select>
+      </div>
+      <div class="signal-card">
+        <div class="signal-title">📅 Seasonal / religious event</div>
+        <select id="sig-event">
+          <option value="none" selected>No special event</option>
+          <option value="christmas">Christmas season (Dec)</option>
+          <option value="summer">Summer / sandal season (Jun–Aug)</option>
+          <option value="ramadan">Ramadan</option>
+          <option value="fathers_day">Father's Day</option>
+          <option value="sport_season">Sport season peak</option>
+          <option value="carnival">Carnival / Fasching</option>
+        </select>
+      </div>
+      <div class="signal-card">
+        <div class="signal-title">⚽ Football fixture</div>
+        <select id="sig-football">
+          <option value="none" selected>No fixture</option>
+          <option value="local">Local Bundesliga matchday</option>
+          <option value="national">National team match</option>
+          <option value="champions">Champions League final</option>
+          <option value="world_cup">World Cup / Euro tournament</option>
+        </select>
+      </div>
+      <div class="signal-card">
+        <div class="signal-title">🏭 Supply chain</div>
+        <select id="sig-supply">
+          <option value="normal" selected>Normal supply</option>
+          <option value="mild_shortage">Mild shortage (−10%)</option>
+          <option value="shortage">Shortage (−30%)</option>
+          <option value="critical">Critical shortage (−50%+)</option>
+          <option value="surplus">Surplus / overstock</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="signal-card" style="margin-bottom:1rem;">
+      <div class="signal-title">📈 Competitor price movement</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:12px;color:#888;white-space:nowrap;">−20%</span>
+        <input type="range" id="sig-competitor" min="-20" max="20" value="0" step="1" oninput="document.getElementById('comp-val').textContent = (this.value > 0 ? '+' : '') + this.value + '%'">
+        <span style="font-size:12px;color:#888;white-space:nowrap;">+20%</span>
+        <span id="comp-val" style="font-size:13px;font-weight:500;min-width:40px;text-align:right;">0%</span>
+      </div>
+      <div class="range-val">Competitors raised/lowered their price by this amount</div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runPricing()" disabled>Generate price recommendation ↗</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+const PRODUCTS = [
+  { sku:'ALK-FB-01', name:'Fuß Butter', line:'Feet', price:7.71, segment:'Women 45+', peak:'Autumn–Winter' },
+  { sku:'ALK-FB-02', name:'Sole Fußbad', line:'Feet', price:6.49, segment:'Wellness 50+', peak:'Winter' },
+  { sku:'ALK-FB-03', name:'Hornhaut Reduziercreme', line:'Feet', price:6.99, segment:'Women 30-60', peak:'Spring (sandal prep)' },
+  { sku:'ALK-FB-05', name:'10% Urea Fußcreme', line:'Feet', price:7.25, segment:'Diabetic/very dry', peak:'All year' },
+  { sku:'ALK-FB-06', name:'Fußpflege Deospray', line:'Feet', price:6.10, segment:'Active men 20-45', peak:'Summer' },
+  { sku:'ALK-LG-01', name:'5 in 1 Beinlotion', line:'Legs', price:9.95, segment:'Women 35-65', peak:'Summer' },
+  { sku:'ALK-LG-02', name:'Bein Frische Gel', line:'Legs', price:8.20, segment:'Travel/standing jobs', peak:'Summer' },
+  { sku:'ALK-LG-03', name:'Besenreiser Pflegebalsam', line:'Legs', price:11.49, segment:'Women 40-65', peak:'Spring–Summer' },
+  { sku:'ALK-MG-01', name:'Mobil Gel', line:'Muscles', price:5.83, segment:'Active 30+', peak:'Autumn–Winter' },
+  { sku:'ALK-MG-02', name:'Mobil Einreibung Extra Stark', line:'Muscles', price:8.90, segment:'Sport 25-55', peak:'Winter/sport' },
+  { sku:'ALK-MG-03', name:'Mobil Eisspray akut', line:'Muscles', price:9.40, segment:'Athletes', peak:'Sport season' },
+  { sku:'ALK-MG-05', name:'Wärmendes Intensiv Gel', line:'Muscles', price:8.30, segment:'45+ tension/back', peak:'Winter' },
+];
+
+let selectedIdx = null;
+
+function buildGrid() {
+  const grid = document.getElementById('productGrid');
+  PRODUCTS.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'prod-btn';
+    btn.id = 'pb-' + i;
+    const lineIcon = p.line === 'Feet' ? '🦶' : p.line === 'Legs' ? '🦵' : '💪';
+    btn.innerHTML = `<div class="prod-name">${lineIcon} ${p.name}</div><div class="prod-meta">€${p.price.toFixed(2)} · ${p.peak}</div>`;
+    btn.onclick = () => selectProduct(i, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectProduct(i, btn) {
+  document.querySelectorAll('.prod-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedIdx = i;
+  document.getElementById('runBtn').disabled = false;
+}
+
+async function runPricing() {
+  if (selectedIdx === null) return;
+  const p = PRODUCTS[selectedIdx];
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Calculating optimal price...';
+  document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:2rem;text-align:center;color:#888;font-size:14px;"><span class="spinner" style="border-top-color:#888;"></span>Analysing signals and computing recommendation...</div>';
+
+  const signals = {
+    weather: document.getElementById('sig-weather').value,
+    event: document.getElementById('sig-event').value,
+    football: document.getElementById('sig-football').value,
+    supply: document.getElementById('sig-supply').value,
+    competitor_change: parseInt(document.getElementById('sig-competitor').value)
+  };
+
+  const prompt = `You are a dynamic pricing agent for Dr. Theiss Naturwaren GmbH / Allgäuer Latschenkiefer, a German pharmacy OTC brand.
+
+PRODUCT:
+- Name: ${p.name} (${p.sku})
+- Category: ${p.line} care
+- Base price: €${p.price.toFixed(2)}
+- Permitted price band: ±12% (min €${(p.price*0.88).toFixed(2)}, max €${(p.price*1.12).toFixed(2)})
+- Peak season: ${p.peak}
+- Target segment: ${p.segment}
+
+CURRENT SIGNALS:
+- Weather: ${signals.weather}
+- Seasonal/religious event: ${signals.event}
+- Football fixture: ${signals.football}
+- Supply chain status: ${signals.supply}
+- Competitor price movement: ${signals.competitor_change > 0 ? '+' : ''}${signals.competitor_change}%
+
+GUARDRAILS (strict):
+1. Never exceed ±12% from base price
+2. No price gouging on health/pharmacy items
+3. Every change must have logged rationale
+4. Respect German pharmacy RPM (resale price maintenance) rules
+5. Supply shortages: can raise max 8% (not full 12%) to protect margin without gouging
+6. During Ramadan or religious events: no price increases on essential health items
+
+Return ONLY valid JSON:
+{
+  "recommended_price": number,
+  "price_change_pct": number,
+  "price_change_eur": number,
+  "direction": "increase"|"decrease"|"hold",
+  "confidence": number (0-100),
+  "signal_impacts": [
+    { "signal": string, "impact": "positive"|"negative"|"neutral", "effect_pct": number, "explanation": string }
+  ],
+  "rationale": string (2-3 sentences explaining the overall recommendation),
+  "guardrails_applied": [string],
+  "demand_forecast": "high"|"normal"|"low",
+  "timing_recommendation": string,
+  "audit_log": string (one-line audit entry for compliance records)
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1200,
+        system: 'You are a pricing engine. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content.map(i => i.text || '').join('');
+    const r = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    renderResult(r, p, signals);
+  } catch(e) {
+    document.getElementById('resultArea').innerHTML = '<div style="background:white;border:1px solid #e5e5e3;border-radius:12px;padding:1.5rem;color:#A32D2D;">Pricing failed. Please try again.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Generate price recommendation ↗';
+  }
+}
+
+function renderResult(r, p, signals) {
+  const dirIcon = r.direction === 'increase' ? '↑' : r.direction === 'decrease' ? '↓' : '→';
+  const dirColor = r.direction === 'increase' ? '#1D9E75' : r.direction === 'decrease' ? '#A32D2D' : '#888';
+  const changeCls = r.direction === 'increase' ? 'change-up' : r.direction === 'decrease' ? 'change-down' : 'change-flat';
+  const changeLabel = r.price_change_pct > 0 ? `+${r.price_change_pct.toFixed(1)}%` : `${r.price_change_pct.toFixed(1)}%`;
+  const changeEur = r.price_change_eur > 0 ? `+€${Math.abs(r.price_change_eur).toFixed(2)}` : r.price_change_eur < 0 ? `-€${Math.abs(r.price_change_eur).toFixed(2)}` : '±€0.00';
+
+  const minP = p.price * 0.88;
+  const maxP = p.price * 1.12;
+  const newP = Math.min(Math.max(r.recommended_price, minP), maxP);
+  const basePct = ((p.price - minP) / (maxP - minP)) * 100;
+  const newPct = ((newP - minP) / (maxP - minP)) * 100;
+
+  const sigTags = (r.signal_impacts || []).map(s => {
+    const cls = s.impact === 'positive' ? 'sig-positive' : s.impact === 'negative' ? 'sig-negative' : 'sig-neutral';
+    const eff = s.effect_pct > 0 ? `+${s.effect_pct}%` : `${s.effect_pct}%`;
+    return `<span class="signal-tag ${cls}">${s.signal} ${eff}</span>`;
+  }).join('');
+
+  const sigDetails = (r.signal_impacts || []).map(s => {
+    const icon = s.impact === 'positive' ? '📈' : s.impact === 'negative' ? '📉' : '➡️';
+    return `<div class="rationale-row"><span style="flex-shrink:0;">${icon}</span><span>${s.explanation}</span></div>`;
+  }).join('');
+
+  const guardrails = (r.guardrails_applied || []).map(g =>
+    `<div style="font-size:13px;padding:2px 0;">⚖ ${g}</div>`
+  ).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:1rem;">${p.name} — Price recommendation</div>
+
+      <div class="price-display">
+        <div class="price-base">
+          <div class="price-label">Base price</div>
+          <div class="price-val" style="color:#888;">€${p.price.toFixed(2)}</div>
+        </div>
+        <div class="price-arrow">${dirIcon}</div>
+        <div class="price-new">
+          <div class="price-label">Recommended</div>
+          <div class="price-val" style="color:${dirColor};">€${newP.toFixed(2)}</div>
+          <span class="price-change ${changeCls}">${changeLabel} (${changeEur})</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Permitted band: €${minP.toFixed(2)} – €${maxP.toFixed(2)}</div>
+          <div class="band-bar">
+            <div class="band-fill" style="left:0;right:0;top:0;bottom:0;"></div>
+            <div class="band-marker" style="left:${basePct}%;background:#888;" title="Base price"></div>
+            <div class="band-marker" style="left:${newPct}%;background:${dirColor};" title="New price"></div>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">Confidence: <strong>${r.confidence}%</strong> · Demand: <strong>${r.demand_forecast}</strong></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1rem;">${sigTags}</div>
+
+      <p style="font-size:14px;color:#555;line-height:1.7;margin-bottom:1rem;">${r.rationale || ''}</p>
+
+      <div class="section-label">Signal breakdown</div>
+      ${sigDetails}
+
+      ${r.timing_recommendation ? `<div style="background:#E6F1FB;border-radius:8px;padding:10px;margin-top:1rem;font-size:13px;"><strong>⏱ Timing:</strong> ${r.timing_recommendation}</div>` : ''}
+
+      ${guardrails ? `<div class="guardrail" style="margin-top:1rem;"><div class="guardrail-label">Guardrails applied</div>${guardrails}</div>` : ''}
+
+      <div style="margin-top:1rem;padding:10px;background:#f5f5f3;border-radius:8px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Audit log</div>
+        <div style="font-size:12px;font-family:monospace;color:#555;">${r.audit_log || ''}</div>
+      </div>
+    </div>`;
+}
+
+buildGrid();
+</script>
+</body>
+</html>
